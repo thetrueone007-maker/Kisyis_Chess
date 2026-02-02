@@ -1,0 +1,8 @@
+{
+  "title": "English Opening",
+  "description": "A flexible opening that can transpose into many structures.",
+  "side": "white",
+  "moves": ["c4","e5","Nc3","Nf6","Nf3","Nc6","g3","d5","cxd5","Nxd5","Bg2","Nb6","O-O","Be7","d3","O-O","Be3","Be6"],
+  "hashtags": ["#ChessOpening","#EnglishOpening","#ChessTheory","#LearnChess","#Chess"],
+  "key_ideas": ["Flexibility","Central control","Transpositions"]
+}

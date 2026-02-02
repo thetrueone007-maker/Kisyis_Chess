@@ -1,0 +1,8 @@
+{
+  "title": "Main Line",
+  "description": "The Albin Counter-Gambit counter",
+  "side": "black",
+  "moves": ["d4","d5","c4","e5","dxe5","d4","Nf3","Nc6","a3","Be6","Nbd2","Qe7","g3","O-O-O","Bg2","h5"],
+  "hashtags": ["#ChessOpening","#AlbinMainLine","#ChessTheory","#LearnChess","#Chess"],
+  "key_ideas": ["Central pawn wedge","Initiative","King-side attack"]
+}

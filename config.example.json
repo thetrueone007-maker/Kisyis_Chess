@@ -1,0 +1,36 @@
+{
+  "pgn_dir": "./ouvertures",
+  "assets_dir": "./assets",
+  "renders_dir": "./renders",
+  "temp_dir": "./temp",
+  "tiktok_dir": "./tiktok_ready",
+  "music_dir": "./audio/music",
+  "sfx_dir": "./audio/sfx",
+  "game_cache": "./game_cache.json",
+
+  "anthropic_api_key": null,
+  "stockfish_path": null,
+
+  "width": 1080,
+  "height": 1920,
+  "fps": 60,
+  "move_seconds": 0.35,
+
+  "enable_eval_bar": true,
+  "enable_highlights": true,
+  "enable_comments": true,
+  "enable_audio": true,
+
+  "stockfish_depth": 15,
+  "stockfish_time": 0.1,
+
+  "_comments": {
+    "anthropic_api_key": "Optionnel - Pour commentaires IA avancés. Obtenez une clé sur console.anthropic.com",
+    "stockfish_path": "Optionnel - Auto-détecté. Spécifiez si non trouvé automatiquement",
+    "width/height": "Résolution TikTok recommandée: 1080x1920 (9:16)",
+    "fps": "30, 60 ou 120. 60 recommandé pour fluidité/taille optimale",
+    "move_seconds": "Durée de chaque coup en secondes. 0.35 = rapide et dynamique",
+    "stockfish_depth": "15-20 = bon équilibre vitesse/précision. 25+ = très précis mais lent",
+    "stockfish_time": "Limite de temps par position en secondes. 0.1 = rapide"
+  }
+}

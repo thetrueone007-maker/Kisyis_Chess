@@ -1,0 +1,8 @@
+{
+  "title": "Exchange System",
+  "description": "The Grünfeld Defense counter",
+  "side": "black",
+  "moves": ["d4","Nf6","c4","g6","Nc3","d5","cxd5","Nxd5","e4","Nxc3","bxc3","Bg7","Nf3","c5","Be3","Qa5","Rc1","Nc6"],
+  "hashtags": ["#ChessOpening","#GrunfeldExchange","#ChessTheory","#LearnChess","#Chess"],
+  "key_ideas": ["Central pressure","Active counterplay","Dynamic equality"]
+}

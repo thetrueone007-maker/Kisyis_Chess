@@ -1,0 +1,8 @@
+{
+  "title": "Sicilian Defense",
+  "description": "An aggressive opening where White aims for central control and dynamic play.",
+  "side": "white",
+  "moves": ["e4","c5","Nf3","d6","d4","cxd4","Nxd4","Nf6","Nc3","a6","Be3","e6","f3","Qc7","Qd2","Nbd7","O-O-O","b5"],
+  "hashtags": ["#ChessOpening","#SicilianDefense","#ChessTheory","#LearnChess","#Chess"],
+  "key_ideas": ["Central control","Rapid development","Dynamic positions"]
+}

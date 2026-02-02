@@ -1,0 +1,8 @@
+{
+  "title": "Benko Gambit",
+  "description": "White accepts a gambit to gain central control and extra material.",
+  "side": "white",
+  "moves": ["d4","Nf6","c4","c5","d5","b5","cxb5","a6","bxa6","g6","Nc3","Bg7","e4","O-O","Nf3","Qa5"],
+  "hashtags": ["#ChessOpening","#BenkoGambit","#ChessTheory","#LearnChess","#Chess"],
+  "key_ideas": ["Extra pawn","Central dominance","Defensive precision"]
+}

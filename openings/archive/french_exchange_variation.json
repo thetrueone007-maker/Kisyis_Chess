@@ -1,0 +1,8 @@
+{
+  "title": "Exchange Variation",
+  "description": "The French Defense counter",
+  "side": "black",
+  "moves": ["e4","e6","d4","d5","exd5","exd5","Nf3","Nf6","Bd3","Bd6","O-O","O-O","Bg5","h6","Bh4","Re8","c3","Nbd7"],
+  "hashtags": ["#ChessOpening","#FrenchExchange","#ChessTheory","#LearnChess","#Chess"],
+  "key_ideas": ["Simplification","Symmetrical structure","Quick equality"]
+}

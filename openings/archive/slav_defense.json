@@ -1,0 +1,8 @@
+{
+  "title": "Slav Defense",
+  "description": "The Queen's Gambit Declined counter",
+  "side": "black",
+  "moves": ["d4","d5","c4","c6","Nc3","Nf6","Nf3","dxc4","a4","Bf5","e3","e6","Bxc4","Bb4","O-O","O-O"],
+  "hashtags": ["#ChessOpening","#SlavDefense","#ChessTheory","#LearnChess","#Chess"],
+  "key_ideas": ["Solid pawn structure","Active bishop","Reliable defense"]
+}

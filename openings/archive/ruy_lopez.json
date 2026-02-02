@@ -1,0 +1,8 @@
+{
+  "title": "Ruy Lopez",
+  "description": "A classical opening aiming for long-term pressure on Black's center.",
+  "side": "white",
+  "moves": ["e4","e5","Nf3","Nc6","Bb5","a6","Ba4","Nf6","O-O","Be7","Re1","b5","Bb3","d6","c3","O-O","h3","Nb8"],
+  "hashtags": ["#ChessOpening","#RuyLopez","#ChessTheory","#LearnChess","#Chess"],
+  "key_ideas": ["Positional pressure","Strong central presence","Long-term advantage"]
+}

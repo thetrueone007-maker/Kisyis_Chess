@@ -1,0 +1,8 @@
+{
+  "title": "Modern Benoni (Tal)",
+  "description": "The Benoni Defense counter",
+  "side": "black",
+  "moves": ["d4","Nf6","c4","c5","d5","e6","Nc3","exd5","cxd5","d6","e4","g6","Nf3","Bg7","Be2","O-O"],
+  "hashtags": ["#ChessOpening","#BenoniTal","#ChessTheory","#LearnChess","#Chess"],
+  "key_ideas": ["Dynamic imbalance","Queenside counterplay","Piece activity"]
+}

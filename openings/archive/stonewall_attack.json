@@ -1,0 +1,8 @@
+{
+  "title": "Stonewall Attack",
+  "description": "The Dutch Defense counter",
+  "side": "black",
+  "moves": ["d4","f5","g3","Nf6","Bg2","e6","Nf3","Be7","O-O","O-O","c4","d5","Qc2","c6","b3","Ne4"],
+  "hashtags": ["#ChessOpening","#Stonewall","#ChessTheory","#LearnChess","#Chess"],
+  "key_ideas": ["Strong pawn chain","Kingside attack","Central blockade"]
+}

@@ -1,0 +1,8 @@
+{
+  "title": "Nimzowitsch System",
+  "description": "The Bogo-Indian Defense counter",
+  "side": "black",
+  "moves": ["d4","Nf6","c4","e6","Nf3","Bb4+","Bd2","Bxd2+","Qxd2","O-O","Nc3","d5","e3","c5","cxd5","exd5"],
+  "hashtags": ["#ChessOpening","#BogoIndianDefense","#ChessTheory","#LearnChess","#Chess"],
+  "key_ideas": ["Structural damage","Quick development","Flexible plans"]
+}

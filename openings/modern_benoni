@@ -1,0 +1,8 @@
+{
+  "title": "Modern Benoni",
+  "description": "A dynamic opening where White builds a strong pawn center.",
+  "side": "white",
+  "moves": ["d4","Nf6","c4","c5","d5","e6","Nc3","exd5","cxd5","d6","e4","g6","Nf3","Bg7","Be2","O-O"],
+  "hashtags": ["#ChessOpening","#ModernBenoni","#ChessTheory","#LearnChess","#Chess"],
+  "key_ideas": ["Space advantage","Central majority","Kingside play"]
+}

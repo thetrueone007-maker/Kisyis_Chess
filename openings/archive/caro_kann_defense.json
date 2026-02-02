@@ -1,0 +1,8 @@
+{
+  "title": "Caro-Kann Defense",
+  "description": "A reliable opening offering excellent pawn structure and endgame prospects.",
+  "side": "white",
+  "moves": ["e4","c6","d4","d5","Nc3","dxe4","Nxe4","Bf5","Ng3","Bg6","h4","h6","Nf3","Nd7","h5","Bh7","Bd3","Bxd3"],
+  "hashtags": ["#ChessOpening","#CaroKann","#ChessTheory","#LearnChess","#Chess"],
+  "key_ideas": ["Solid structure","Safe king","Strong endgames"]
+}

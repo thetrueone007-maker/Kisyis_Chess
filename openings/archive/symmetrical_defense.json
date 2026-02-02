@@ -1,0 +1,8 @@
+{
+  "title": "Symmetrical Defense",
+  "description": "The English Opening counter",
+  "side": "black",
+  "moves": ["c4","c5","Nc3","Nc6","Nf3","Nf6","g3","g6","Bg2","Bg7","O-O","O-O","d3","d6","Rb1","Rb8","a3","a6"],
+  "hashtags": ["#ChessOpening","#SymmetricalDefense","#ChessTheory","#LearnChess","#Chess"],
+  "key_ideas": ["Symmetry","Solid development","Strategic maneuvering"]
+}

@@ -1,0 +1,8 @@
+{
+  "title": "Bogo-Indian Defense",
+  "description": "A flexible defense against d4 focusing on piece activity.",
+  "side": "white",
+  "moves": ["d4","Nf6","c4","e6","Nf3","Bb4+","Bd2","Bxd2+","Qxd2","O-O","Nc3","d5","e3","c5","cxd5","exd5"],
+  "hashtags": ["#ChessOpening","#BogoIndian","#ChessTheory","#LearnChess","#Chess"],
+  "key_ideas": ["Bishop pair","Central control","Solid setup"]
+}

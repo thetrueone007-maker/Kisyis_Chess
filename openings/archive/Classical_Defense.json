@@ -1,0 +1,8 @@
+{
+  "title": "Classical Defense",
+  "description": "The Queen's Gambit Accepted counter",
+  "side": "black",
+  "moves": ["d4","d5","c4","dxc4","Nf3","Nf6","e3","e6","Bxc4","c5","O-O","a6","Qe2","Nc6","Rd1","b5"],
+  "hashtags": ["#ChessOpening","#QGAClassical","#ChessTheory","#LearnChess","#Chess"],
+  "key_ideas": ["Hold the extra pawn","Solid development","Timely counterplay"]
+}

@@ -1,0 +1,8 @@
+{
+  "title": "Classical Variation",
+  "description": "The Caro-Kann Defense counter",
+  "side": "black",
+  "moves": ["e4","c6","d4","d5","Nc3","dxe4","Nxe4","Bf5","Ng3","Bg6","Nf3","Nd7","h4","h6","h5","Bh7","Bd3","Bxd3"],
+  "hashtags": ["#ChessOpening","#CaroKannClassical","#ChessTheory","#LearnChess","#Chess"],
+  "key_ideas": ["Solid development","Central stability","Counterplay"]
+}

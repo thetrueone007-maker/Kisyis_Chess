@@ -1,0 +1,8 @@
+{
+  "title": "Berlin Defense",
+  "description": "The Ruy Lopez counter",
+  "side": "black",
+  "moves": ["e4","e5","Nf3","Nc6","Bb5","Nf6","O-O","Nxe4","d4","Nd6","Bxc6","dxc6","dxe5","Nf5","Qxd8+","Kxd8","Nc3","Bd7"],
+  "hashtags": ["#ChessOpening","#BerlinDefense","#ChessTheory","#LearnChess","#Chess"],
+  "key_ideas": ["Solid endgame","Structural soundness","Defensive resilience"]
+}

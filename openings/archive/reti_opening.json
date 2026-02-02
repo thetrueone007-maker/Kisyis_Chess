@@ -1,0 +1,8 @@
+{
+  "title": "Reti Opening",
+  "description": "A hypermodern opening focused on indirect central pressure.",
+  "side": "white",
+  "moves": ["Nf3","d5","c4","e6","g3","Nf6","Bg2","Be7","O-O","O-O","d3","c5","Nc3","Nc6","cxd5","Nxd5","Bd2","Nxc3"],
+  "hashtags": ["#ChessOpening","#RetiOpening","#ChessTheory","#LearnChess","#Chess"],
+  "key_ideas": ["Flexible setup","Central pressure","Safe development"]
+}

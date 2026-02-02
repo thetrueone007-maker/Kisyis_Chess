@@ -1,0 +1,8 @@
+{
+  "title": "French Defense",
+  "description": "A solid opening leading to closed structures and strategic battles.",
+  "side": "white",
+  "moves": ["e4","e6","d4","d5","exd5","exd5","Nf3","Bd6","Bd3","Nf6","O-O","O-O","Bg5","c6","Re1","h6","Bh4","Re8"],
+  "hashtags": ["#ChessOpening","#FrenchDefense","#ChessTheory","#LearnChess","#Chess"],
+  "key_ideas": ["Strong pawn structure","Central tension","Long-term planning"]
+}

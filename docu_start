@@ -1,0 +1,42 @@
+
+● ✅ Toutes les modifications sont terminées !
+
+  Résumé des changements :
+
+  1. Barre d'évaluation déplacée ✅
+
+  - Fichier : enhanced_renderer.py:78
+  - Barre déplacée de 5 pixels plus à gauche (de 15px à 20px)
+
+  2. Mode "Opening" ajouté ✅
+
+  - Fichiers modifiés :
+    - enhanced_renderer.py:47,53,163 : Paramètre opening_mode qui désactive les annotations
+    - main_pipeline.py:100,183,546,568 : Flag et argument --opening-mode
+  - Comportement : Désactive les badges "BRILLIANT", "BLUNDER", etc. pour les vidéos d'ouvertures théoriques
+
+  3. Arguments disponibles :
+
+  # Générer 5 vidéos SANS les poster (par défaut)
+  python main_pipeline.py --count 5
+
+  # Générer 5 vidéos ET les poster
+  python main_pipeline.py --count 5 --auto-upload
+
+  # Mode ouverture (sans annotations de coups)
+  python main_pipeline.py --count 3 --opening-mode
+
+  # Toutes les options combinées
+  python main_pipeline.py --count 5 --opening-mode --no-audio --auto-upload
+
+  Arguments complets :
+
+  - --count N : Nombre de vidéos à générer
+  - --mix-ratio 0.5 : Ratio Lichess/Classiques
+  - --no-eval : Désactive la barre d'évaluation
+  - --no-audio : Désactive la musique
+  - --auto-upload : Active le posting automatique
+  - --opening-mode : Mode ouverture (pas d'annotations)
+  - --config file.json : Config custom
+
+  Par défaut, les vidéos sont générées SANS être postées - tu dois ajouter --auto-upload pour activer le posting !

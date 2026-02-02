@@ -1,0 +1,8 @@
+{
+  "title": "Anglo-Indian Defense",
+  "description": "The Reti Opening counter",
+  "side": "black",
+  "moves": ["Nf3","Nf6","c4","e6","g3","d5","Bg2","Be7","O-O","O-O","d3","c5","Nc3","Nc6","cxd5","Nxd5","Bd2","b6"],
+  "hashtags": ["#ChessOpening","#AngloIndian","#ChessTheory","#LearnChess","#Chess"],
+  "key_ideas": ["Central control","Flexible structure","Solid play"]
+}

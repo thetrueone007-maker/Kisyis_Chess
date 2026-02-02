@@ -1,0 +1,8 @@
+{
+  "title": "Grünfeld Defense",
+  "description": "A hypermodern opening allowing White to build a strong center.",
+  "side": "white",
+  "moves": ["d4","Nf6","c4","g6","Nc3","d5","cxd5","Nxd5","e4","Nxc3","bxc3","Bg7","Nf3","c5","Rb1","O-O","Be2","Nc6"],
+  "hashtags": ["#ChessOpening","#GrunfeldDefense","#ChessTheory","#LearnChess","#Chess"],
+  "key_ideas": ["Strong center","Dynamic tension","Active piece play"]
+}

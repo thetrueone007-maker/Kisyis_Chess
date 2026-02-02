@@ -1,0 +1,8 @@
+{
+  "title": "Nimzo-Indian Defense",
+  "description": "The Queen's Gambit Declined counter",
+  "side": "black",
+  "moves": ["d4","Nf6","c4","e6","Nc3","Bb4","e3","O-O","Bd3","d5","Nf3","c5","O-O","Nc6","a3","Bxc3","bxc3","dxc4"],
+  "hashtags": ["#ChessOpening","#NimzoIndian","#ChessTheory","#LearnChess","#Chess"],
+  "key_ideas": ["Pressure on structure","Dynamic imbalance","Active pieces"]
+}

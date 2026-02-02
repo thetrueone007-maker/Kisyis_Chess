@@ -1,0 +1,10 @@
+PySide6>=6.10.0
+python-chess>=1.999
+Pillow>=12.0.0
+requests>=2.31.0
+stockfish>=3.28.0
+berserk>=0.13.0
+anthropic>=0.40.0
+schedule>=1.2.0
+pydub>=0.25.1
+playwright>=1.40.0

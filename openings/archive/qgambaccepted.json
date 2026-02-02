@@ -1,0 +1,8 @@
+{
+  "title": "Queen's Gambit Accepted",
+  "description": "An opening where White sacrifices a pawn to gain rapid development and central control.",
+  "side": "white",
+  "moves": ["d4","d5","c4","dxc4","Nf3","Nf6","e3","e6","Bxc4","c5","O-O","a6","Qe2","Nc6","Rd1","b5"],
+  "hashtags": ["#ChessOpening","#QGA","#ChessTheory","#LearnChess","#Chess"],
+  "key_ideas": ["Rapid development","Central pressure","Lead in activity"]
+}

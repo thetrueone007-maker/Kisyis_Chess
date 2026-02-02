@@ -1,0 +1,8 @@
+{
+  "title": "Anti-London Defense",
+  "description": "The London System counter",
+  "side": "black",
+  "moves": ["d4","d5","Nf3","Nf6","Bf4","c5","e3","Nc6","c3","Bg4","Nbd2","e6","Bd3","Bd6","Bg3","O-O","Ne5","Bh5"],
+  "hashtags": ["#ChessOpening","#AntiLondon","#ChessTheory","#LearnChess","#Chess"],
+  "key_ideas": ["Early counterplay","Central pressure","Active development"]
+}

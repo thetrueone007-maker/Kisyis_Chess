@@ -1,0 +1,8 @@
+{
+  "title": "Classical Defense",
+  "description": "The Torre Attack counter",
+  "side": "black",
+  "moves": ["d4","Nf6","Nf3","e6","Bg5","Be7","e3","O-O","Nbd2","d5","c3","c5","Bd3","Nc6","O-O","b6","Ne5","Bb7"],
+  "hashtags": ["#ChessOpening","#ClassicalDefense","#ChessTheory","#LearnChess","#Chess"],
+  "key_ideas": ["Neutralization","Solid setup","Equal play"]
+}

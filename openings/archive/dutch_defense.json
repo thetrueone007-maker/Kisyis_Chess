@@ -1,0 +1,8 @@
+{
+  "title": "Dutch Defense",
+  "description": "An aggressive opening aiming for kingside space.",
+  "side": "white",
+  "moves": ["d4","f5","g3","Nf6","Bg2","e6","Nf3","Be7","O-O","O-O","c4","d5","Qc2","c6","b3","a5"],
+  "hashtags": ["#ChessOpening","#DutchDefense","#ChessTheory","#LearnChess","#Chess"],
+  "key_ideas": ["Kingside control","Solid setup","Strategic pressure"]
+}
