@@ -186,29 +186,105 @@ Make it exciting, congratulate the winner (or both for a draw). Use emojis. End 
         black = game.headers.get("Black", "").replace(" ", "")
 
         hashtags = [
-            "#chess",
-            "#chessgame",
-            "#chessplayer",
-            "#chesstok",
-            "#chessmaster",
-            "#chessmoves",
-            "#chesstactic",
-            "#chessstrategy"
+            "chess", "chesstok", "grandmaster", "chessgame",
+            "chessmaster", "chessmoves", "chessstrategy",
+            "fyp", "foryou", "viral", "foryoupage"
         ]
 
         # Add player-specific tags if they're famous
         famous_players = {
-            "MagnusCarlsen": "#magnuscarlsen",
-            "Hikaru": "#hikaru",
-            "DrNykterstein": "#magnuscarlsen",
-            "FabianoCaruana": "#fabianocaruana",
+            "magnuscarlsen": "magnuscarlsen",
+            "hikaru": "hikaru",
+            "drnykterstein": "magnuscarlsen",
+            "fabianocaruana": "fabianocaruana",
+            "danielnaroditsky": "danielnaroditsky",
+            "firouzja2003": "firouzja",
+            "polish_fighter3000": "jankrzysztofduda",
+            "penguingim1": "andrewtang",
+            "veloce": "mvl",
+            "nihalsarin": "nihalsarin",
+            "gothamchess": "gothamchess",
+            "viditchess": "viditgujrathi",
+            "gmbenjaminfinegold": "finegold",
+            "lachesisq": "lachesisq",
+            "chessbrahs": "chessbrahs",
+            "rebeccaharris": "levyrozman",
+            "gmhikaruontwitch": "hikaru",
+            "fairchess_on_youtube": "levonaronian",
         }
 
-        for player, tag in famous_players.items():
-            if player.lower() in white.lower() or player.lower() in black.lower():
+        for player_key, tag in famous_players.items():
+            if player_key in white.lower() or player_key in black.lower():
+                if tag not in hashtags:
+                    hashtags.append(tag)
+
+        # Add opening-specific tags
+        opening = game.headers.get("Opening", "").lower()
+        opening_tags = {
+            "sicilian": "siciliandefense",
+            "french": "frenchdefense",
+            "italian": "italiangame",
+            "ruy lopez": "ruylopez",
+            "queen's gambit": "queensgambit",
+            "king's indian": "kingsindian",
+            "caro-kann": "carokann",
+            "english": "englishopening",
+            "dutch": "dutchdefense",
+            "nimzo": "nimzoindian",
+            "grunfeld": "grunfeld",
+            "catalan": "catalan",
+            "london": "londonsystem",
+            "scotch": "scotchgame",
+            "pirc": "pircdefense",
+        }
+        for key, tag in opening_tags.items():
+            if key in opening and tag not in hashtags:
+                hashtags.append(tag)
+                break  # Only add one opening tag
+
+        return hashtags[:15]
+
+    def generate_puzzle_hashtags(self, puzzle_data: dict) -> List[str]:
+        """Generate hashtags for a puzzle video"""
+        hashtags = [
+            "chess", "chesspuzzle", "chesstok", "chesstactics",
+            "puzzle", "tactics", "chessmoves", "grandmaster",
+            "fyp", "foryou", "viral", "foryoupage",
+            "canyousolvethis", "findthebestmove"
+        ]
+
+        # Add theme-specific hashtags
+        theme_to_tag = {
+            "middlegame": "middlegame",
+            "endgame": "endgame",
+            "mateIn1": "matein1",
+            "mateIn2": "matein2",
+            "mateIn3": "matein3",
+            "fork": "fork",
+            "pin": "pin",
+            "sacrifice": "sacrifice",
+            "backRankMate": "backrankmate",
+            "discoveredAttack": "discoveredattack",
+            "deflection": "deflection",
+            "skewer": "skewer",
+            "doubleCheck": "doublecheck",
+            "zugzwang": "zugzwang",
+            "quietMove": "quietmove",
+            "xRayAttack": "xray",
+        }
+        for theme in puzzle_data.get('themes', []):
+            tag = theme_to_tag.get(theme)
+            if tag and tag not in hashtags:
                 hashtags.append(tag)
 
-        return hashtags
+        # Add rating-based tag
+        rating = puzzle_data.get('rating', 0)
+        if rating > 2000:
+            hashtags.append("hardpuzzle")
+        elif rating < 1200:
+            hashtags.append("easypuzzle")
+
+        return hashtags[:15]
 
 
 class CommentScheduler:

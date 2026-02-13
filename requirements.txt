@@ -1,6 +1,6 @@
-PySide6>=6.10.0
-python-chess>=1.999
-Pillow>=12.0.0
+PySide6>=6.6.0
+python-chess>=1.10.0
+Pillow>=10.0.0
 requests>=2.31.0
 stockfish>=3.28.0
 berserk>=0.13.0

@@ -278,6 +278,112 @@ class TikTokAutoUploader:
         self._save_debug_screenshot("07_login_success")
         return True
 
+    def _add_recommended_sound(self) -> bool:
+        """
+        Try to add a recommended/trending sound from TikTok.
+        Best-effort: returns False silently if anything fails.
+        The video will still be published with its original audio.
+        """
+        try:
+            self._save_debug_screenshot("sound_01_before")
+
+            # Look for "Add sound" / "Ajouter un son" button
+            sound_btn_selectors = [
+                "[data-e2e='add-sound-btn']",
+                "div:has-text('Add sound'):not(:has(div))",
+                "span:has-text('Add sound')",
+                "div:has-text('Ajouter un son'):not(:has(div))",
+                "span:has-text('Ajouter un son')",
+                "button:has-text('Add sound')",
+                "button:has-text('Ajouter un son')",
+            ]
+
+            sound_btn = self._wait_for_element(sound_btn_selectors, timeout=5000)
+            if not sound_btn:
+                return False
+
+            self.page.locator(sound_btn).first.click()
+            self._human_delay(2, 3)
+            self._save_debug_screenshot("sound_02_panel_opened")
+
+            # Look for "Recommended" tab or the first sound in the list
+            recommended_tab_selectors = [
+                "div[data-e2e='recommended-tab']",
+                "span:has-text('Recommended')",
+                "span:has-text('Recommandé')",
+                "div:has-text('Recommended'):not(:has(div))",
+            ]
+            tab = self._wait_for_element(recommended_tab_selectors, timeout=3000)
+            if tab:
+                self.page.locator(tab).first.click()
+                self._human_delay(1, 2)
+
+            # Select the first available sound
+            sound_item_selectors = [
+                "div[data-e2e='sound-item']:first-child",
+                "div[class*='sound-card']:first-child",
+                "div[class*='SoundCard']:first-child",
+                "div[class*='music-card']:first-child",
+                "div[class*='sound-item']:first-child",
+            ]
+
+            sound_item = self._wait_for_element(sound_item_selectors, timeout=5000)
+            if not sound_item:
+                # Try clicking the first clickable item in the sound panel
+                try:
+                    self.page.locator("div[class*='sound'] >> nth=0").click()
+                    self._human_delay(1, 2)
+                except Exception:
+                    return False
+            else:
+                self.page.locator(sound_item).first.click()
+                self._human_delay(1, 2)
+
+            self._save_debug_screenshot("sound_03_sound_selected")
+
+            # Confirm the sound selection
+            use_selectors = [
+                "button:has-text('Use this sound')",
+                "button:has-text('Utiliser ce son')",
+                "button:has-text('Use')",
+                "button:has-text('Utiliser')",
+                "button[data-e2e='use-sound-btn']",
+            ]
+
+            if self._click_element(use_selectors, timeout=5000):
+                self._human_delay(1, 2)
+                self._save_debug_screenshot("sound_04_confirmed")
+                return True
+
+            return False
+
+        except Exception:
+            return False
+
+    def refresh_session(self) -> bool:
+        """
+        Check if session is still valid and try to refresh if expired.
+        Returns True if session is valid.
+        """
+        if not self.page:
+            return False
+
+        try:
+            self.page.goto("https://www.tiktok.com/upload", timeout=30000)
+            self._human_delay(2, 3)
+
+            if self._is_logged_in():
+                return True
+
+            # Session expired, try re-login with saved session
+            print("[WARN] Session expirée, tentative de reconnexion...")
+            self.close()
+            return self.login_with_google()
+
+        except Exception as e:
+            print(f"[ERROR] Erreur lors du refresh de session: {e}")
+            return False
+
     def _is_logged_in(self) -> bool:
         """Check if user is already logged in"""
         # Check for upload interface elements
@@ -424,9 +530,13 @@ class TikTokAutoUploader:
 
             self._save_debug_screenshot("15_caption_added")
 
-            # Skip music selection as it's unreliable
+            # Try to add recommended sound (best-effort)
             if use_recommended_music:
-                print("[WARN]  Sélection de musique désactivée (peu fiable)")
+                print("[MUSIC] Tentative d'ajout d'un son recommandé...")
+                if self._add_recommended_sound():
+                    print("[OK] Son recommandé ajouté!")
+                else:
+                    print("[INFO] Son recommandé non disponible, publication avec audio original")
 
             # Scroll down to make publish button visible
             self.page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
@@ -451,23 +561,24 @@ class TikTokAutoUploader:
                     "[data-e2e='draft-btn']"
                 ]
 
-            if self._click_element(publish_selectors, timeout=5000):
-                print("[OK] Vidéo " + ("publiée" if publish else "sauvegardée en brouillon") + " avec succès!")
-                self._human_delay(3, 5)
-                self._save_debug_screenshot("17_published")
-                return True
-            else:
-                self._save_debug_screenshot("18_publish_button_not_found")
-                print("[WARN]  Impossible de trouver le bouton de publication")
-                print("   La vidéo a été préparée mais doit être publiée manuellement")
-
-                # Keep browser open for manual intervention
-                print("\n" + "="*70)
-                print("[PAUSE]  INTERVENTION MANUELLE REQUISE")
-                print("="*70)
-                print("Veuillez cliquer sur le bouton 'Publier' manuellement dans le navigateur.")
-                input("Appuyez sur Entrée une fois terminé...")
-                return True
+            # Retry logic for publish button
+            max_publish_retries = 3
+            for attempt in range(max_publish_retries):
+                if self._click_element(publish_selectors, timeout=5000):
+                    print("[OK] Vidéo " + ("publiée" if publish else "sauvegardée en brouillon") + " avec succès!")
+                    self._human_delay(3, 5)
+                    self._save_debug_screenshot("17_published")
+                    return True
+                else:
+                    if attempt < max_publish_retries - 1:
+                        print(f"[WARN] Bouton non trouvé, retry {attempt + 2}/{max_publish_retries}...")
+                        self.page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                        self._human_delay(3, 5)
+                    else:
+                        self._save_debug_screenshot("18_publish_button_not_found")
+                        print("[WARN] Impossible de trouver le bouton de publication après 3 tentatives")
+                        print("   La vidéo a été préparée mais n'a pas pu être publiée automatiquement")
+                        return False
 
         except Exception as e:
             self._save_debug_screenshot("19_error")

@@ -7,6 +7,7 @@
   "music_dir": "./audio/music",
   "sfx_dir": "./audio/sfx",
   "game_cache": "./game_cache.json",
+  "puzzle_cache": "./puzzle_cache.json",
 
   "anthropic_api_key": null,
   "stockfish_path": null,
@@ -15,22 +16,32 @@
   "height": 1920,
   "fps": 60,
   "move_seconds": 0.35,
+  "use_nvenc": false,
 
   "enable_eval_bar": true,
   "enable_highlights": true,
-  "enable_comments": true,
+  "enable_comments": false,
   "enable_audio": true,
+  "enable_auto_upload": true,
+  "enable_puzzles": true,
+
+  "videos_per_day": 5,
+  "puzzle_ratio": 0.4,
 
   "stockfish_depth": 15,
   "stockfish_time": 0.1,
 
   "_comments": {
-    "anthropic_api_key": "Optionnel - Pour commentaires IA avancés. Obtenez une clé sur console.anthropic.com",
+    "puzzle_cache": "Cache des puzzles déjà utilisés (évite les doublons)",
+    "use_nvenc": "false sur macOS (pas de GPU NVIDIA). true sur Linux/Windows avec GPU NVIDIA",
+    "enable_comments": "false = hashtags fixes seulement. true = commentaires IA (nécessite anthropic_api_key)",
+    "enable_auto_upload": "Upload automatique sur TikTok. Nécessite un login initial (--setup)",
+    "enable_puzzles": "Activer la génération de vidéos de puzzles Lichess",
+    "videos_per_day": "Nombre de vidéos par jour (5 par défaut)",
+    "puzzle_ratio": "Proportion de puzzles vs parties (0.4 = 40% puzzles, 60% parties)",
     "stockfish_path": "Optionnel - Auto-détecté. Spécifiez si non trouvé automatiquement",
     "width/height": "Résolution TikTok recommandée: 1080x1920 (9:16)",
     "fps": "30, 60 ou 120. 60 recommandé pour fluidité/taille optimale",
-    "move_seconds": "Durée de chaque coup en secondes. 0.35 = rapide et dynamique",
-    "stockfish_depth": "15-20 = bon équilibre vitesse/précision. 25+ = très précis mais lent",
-    "stockfish_time": "Limite de temps par position en secondes. 0.1 = rapide"
+    "move_seconds": "Durée de chaque coup en secondes. 0.35 = rapide et dynamique"
   }
 }

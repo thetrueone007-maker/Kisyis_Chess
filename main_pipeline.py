@@ -5,6 +5,7 @@ Orchestrates all components for end-to-end video creation
 """
 
 import sys
+import platform
 import argparse
 import json
 import shutil
@@ -34,6 +35,7 @@ from audio_manager import AudioManager
 from tiktok_manager import TikTokVideoPrep
 from piece_sound_generator import PieceSoundGenerator
 from tiktok_auto_uploader import TikTokAutoUploader
+from puzzle_fetcher import PuzzleFetcher
 try:
     from stockfish_analyzer import StockfishAnalyzer
     STOCKFISH_AVAILABLE = True
@@ -52,7 +54,10 @@ class ChessTikTokPipeline:
         Args:
             config: Configuration dictionary
         """
-        self.config = config or self._default_config()
+        defaults = self._default_config()
+        if config:
+            defaults.update(config)
+        self.config = defaults
         self._initialize_components()
 
     def load_opening_from_json(self, json_file: str) -> chess.pgn.Game:
@@ -104,6 +109,10 @@ class ChessTikTokPipeline:
             cache_file=self.config['game_cache']
         )
 
+        self.puzzle_fetcher = PuzzleFetcher(
+            cache_file=self.config.get('puzzle_cache', './puzzle_cache.json')
+        )
+
         self.comment_generator = CommentGenerator(
             api_key=self.config.get('anthropic_api_key')
         )
@@ -149,7 +158,7 @@ class ChessTikTokPipeline:
             'move_seconds': 1,
             'crf': 20,  # Quality (only used for CPU fallback)
             'preset': 'p4',  # NVENC preset (p1=fastest, p7=slowest)
-            'use_nvenc': True,  # Use NVIDIA GPU encoding
+            'use_nvenc': platform.system() not in ('Darwin',),  # No NVENC on macOS
             'use_ultra_renderer': True,  # Use premium UltraRenderer
 
             # Feature flags
@@ -349,13 +358,24 @@ class ChessTikTokPipeline:
 
         # Step 7: Prepare metadata
         print("\n[7/8] Preparing upload metadata...")
-        white = game.headers.get('White', 'Player')
-        black = game.headers.get('Black', 'Player')
-        event = game.headers.get('Event', 'Chess Game')
 
-        title = f"[CHESS] {white} vs {black}"
-        hashtags = self.comment_generator.generate_hashtags(game)
-        description = f"{event} - {game.headers.get('Result', '*')}"
+        if hasattr(game, 'puzzle_data'):
+            # Puzzle metadata
+            puzzle = game.puzzle_data
+            rating = puzzle.get('rating', 0)
+            themes = puzzle.get('themes', [])
+            title = f"Can you solve this? Rating: {rating}"
+            hashtags = self.comment_generator.generate_puzzle_hashtags(puzzle)
+            theme_str = ', '.join(themes[:3]) if themes else 'tactics'
+            description = f"Chess Puzzle #{puzzle.get('id', '')} - {theme_str}"
+        else:
+            # Game metadata
+            white = game.headers.get('White', 'Player')
+            black = game.headers.get('Black', 'Player')
+            event = game.headers.get('Event', 'Chess Game')
+            title = f"[CHESS] {white} vs {black}"
+            hashtags = self.comment_generator.generate_hashtags(game)
+            description = f"{event} - {game.headers.get('Result', '*')}"
 
         self.tiktok_prep.add_to_upload_queue(
             tiktok_video,
@@ -489,6 +509,24 @@ class ChessTikTokPipeline:
             )
             proc.stdin.write(qimg.bits().tobytes())
 
+        # For puzzles: add a "think" pause before the first solution move
+        is_puzzle = hasattr(game, 'puzzle_data')
+        if is_puzzle:
+            think_pause_frames = max(1, int(3.0 * renderer.fps))  # 3 seconds
+            board_for_pause = game.board()
+            positions = renderer.compose_piece_positions(board_for_pause)
+            for _ in range(think_pause_frames):
+                qimg = renderer.render_enhanced_frame(
+                    board_for_pause,
+                    positions,
+                    header_title,
+                    'small',
+                    1.0,
+                    eval_cp=0,
+                    comment=None
+                )
+                proc.stdin.write(qimg.bits().tobytes())
+
         # Moves
         board = game.board()
         frames_per_move = max(1, int(renderer.move_seconds * renderer.fps))
@@ -601,6 +639,50 @@ class ChessTikTokPipeline:
         ret = proc.wait()
         if ret != 0:
             raise RuntimeError(f"ffmpeg exited with code {ret}")
+
+    def generate_single_content(self, content_type: str = "auto") -> Optional[Path]:
+        """
+        Generate a single piece of content (game or puzzle).
+
+        Args:
+            content_type: 'game', 'puzzle', or 'auto' (random weighted choice)
+
+        Returns:
+            Path to the generated TikTok-ready video, or None on failure
+        """
+        import random
+
+        if content_type == "auto":
+            content_type = random.choices(
+                ["puzzle", "game"],
+                weights=[0.4, 0.6]
+            )[0]
+
+        if content_type == "puzzle":
+            print("\n[PUZZLE] Generating puzzle content...")
+            games = self.puzzle_fetcher.fetch_and_convert(count=1)
+            if games:
+                game = games[0]
+                pid = game.puzzle_data['id']
+                game_name = f"puzzle_{pid}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                return self.generate_video(game, game_name)
+            else:
+                print("[WARN] No puzzles available, falling back to game...")
+                content_type = "game"
+
+        if content_type == "game":
+            print("\n[CHESS] Generating game content...")
+            game = self.game_fetcher.fetch_random_master_game()
+            if game:
+                white = game.headers.get('White', 'Unknown').replace(' ', '_')[:20]
+                black = game.headers.get('Black', 'Unknown').replace(' ', '_')[:20]
+                game_name = f"game_{white}_vs_{black}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                return self.generate_video(game, game_name)
+            else:
+                print("[ERROR] Could not fetch any game")
+                return None
+
+        return None
 
     def generate_batch(self, count: int = 10, mix_ratio: float = 0.5, opening_filter: str = None):
         """

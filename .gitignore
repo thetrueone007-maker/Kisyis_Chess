@@ -37,6 +37,7 @@ temp/
 
 # Cache & Data
 game_cache.json
+puzzle_cache.json
 tiktok_analytics.json
 upload_queue.json
 automation_queue.json

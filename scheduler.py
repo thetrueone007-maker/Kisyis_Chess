@@ -2,10 +2,12 @@
 """
 Scheduler for automated chess video generation
 Runs the pipeline automatically at scheduled times
+Supports individual content-type aware uploads (puzzle vs game)
 """
 
 import schedule
 import time
+import random
 import argparse
 import logging
 from datetime import datetime
@@ -16,25 +18,45 @@ from main_pipeline import ChessTikTokPipeline
 class VideoScheduler:
     """Automated scheduler for chess video generation"""
 
-    def __init__(self, videos_per_day: int = 10, config: dict = None):
+    # Default schedule: 5 posts/day at peak TikTok engagement times
+    DEFAULT_SCHEDULE = [
+        {"time": "07:00", "type": "puzzle"},   # Morning scroll
+        {"time": "10:30", "type": "game"},      # Mid-morning break
+        {"time": "13:00", "type": "auto"},      # Lunch break (peak)
+        {"time": "17:00", "type": "game"},      # After work/school (peak)
+        {"time": "20:30", "type": "puzzle"},    # Evening prime time
+    ]
+
+    def __init__(self, videos_per_day: int = 5, config: dict = None,
+                 schedule_times: list = None, jitter_minutes: int = 15):
         """
         Initialize scheduler
 
         Args:
             videos_per_day: Number of videos to generate per day
             config: Pipeline configuration
+            schedule_times: Custom schedule (list of dicts with 'time' and 'type')
+            jitter_minutes: Random jitter ± minutes for anti-detection
         """
         self.videos_per_day = videos_per_day
-        self.config = config
-        self.pipeline = ChessTikTokPipeline(config)
+        self.config = config or {}
+        self.jitter_minutes = jitter_minutes
+        self.schedule_times = schedule_times or self.DEFAULT_SCHEDULE
+
+        # Ensure auto-upload is enabled
+        if self.config:
+            self.config['enable_auto_upload'] = True
+        else:
+            self.config = {'enable_auto_upload': True}
+
+        self.pipeline = ChessTikTokPipeline(self.config)
 
         # Setup logging
         self._setup_logging()
 
-        # Calculate schedule
-        self.batch_size = max(1, videos_per_day // 4)  # Spread across 4 runs per day
         self.logger.info(f"Scheduler initialized: {videos_per_day} videos/day")
-        self.logger.info(f"Batch size: {self.batch_size} videos per run")
+        self.logger.info(f"Schedule: {len(self.schedule_times)} time slots")
+        self.logger.info(f"Jitter: +/- {jitter_minutes} minutes")
 
     def _setup_logging(self):
         """Configure logging"""
@@ -54,16 +76,44 @@ class VideoScheduler:
 
         self.logger = logging.getLogger('VideoScheduler')
 
+    def generate_single_job(self, content_type="auto"):
+        """
+        Generate and upload a single video.
+
+        Args:
+            content_type: 'game', 'puzzle', or 'auto'
+        """
+        # Add random jitter
+        jitter_sec = random.randint(0, self.jitter_minutes * 60)
+        if jitter_sec > 0:
+            self.logger.info(f"[WAIT] Jitter delay: {jitter_sec // 60}m {jitter_sec % 60}s")
+            time.sleep(jitter_sec)
+
+        self.logger.info("=" * 70)
+        self.logger.info(f"[START] Generating single {content_type} content")
+        self.logger.info("=" * 70)
+
+        try:
+            video_path = self.pipeline.generate_single_content(content_type=content_type)
+
+            if video_path:
+                self.logger.info(f"[OK] Content generated: {video_path}")
+            else:
+                self.logger.warning("[WARN] Content generation failed")
+
+        except Exception as e:
+            self.logger.error(f"[ERROR] Job failed: {e}", exc_info=True)
+
     def generate_batch_job(self):
-        """Job function to generate a batch of videos"""
-        self.logger.info("="*70)
+        """Job function to generate a batch of videos (legacy mode)"""
+        self.logger.info("=" * 70)
         self.logger.info(f"Starting scheduled batch: {self.batch_size} videos")
-        self.logger.info("="*70)
+        self.logger.info("=" * 70)
 
         try:
             self.pipeline.generate_batch(
                 count=self.batch_size,
-                mix_ratio=0.5  # 50/50 mix
+                mix_ratio=0.5
             )
             self.logger.info("[OK] Batch completed successfully")
 
@@ -74,53 +124,64 @@ class VideoScheduler:
         """Configure the schedule based on videos_per_day"""
         schedule.clear()
 
-        if self.videos_per_day >= 20:
-            # Very aggressive: every 2 hours
-            self.logger.info("Schedule: Every 2 hours (20+ videos/day)")
+        if self.videos_per_day <= 5 and len(self.schedule_times) >= self.videos_per_day:
+            # Individual content-type aware scheduling (preferred for 5/day)
+            self.logger.info(f"Schedule: {self.videos_per_day} individual posts/day")
+            for slot in self.schedule_times[:self.videos_per_day]:
+                t = slot['time']
+                ct = slot.get('type', 'auto')
+                schedule.every().day.at(t).do(self.generate_single_job, content_type=ct)
+                self.logger.info(f"  - {t} -> {ct}")
+
+        elif self.videos_per_day >= 20:
+            self.batch_size = max(1, self.videos_per_day // 12)
+            self.logger.info(f"Schedule: Every 2 hours, batch={self.batch_size}")
             schedule.every(2).hours.do(self.generate_batch_job)
 
         elif self.videos_per_day >= 12:
-            # Aggressive: 4 times a day
-            self.logger.info("Schedule: 4 times per day (12-20 videos/day)")
+            self.batch_size = max(1, self.videos_per_day // 4)
+            self.logger.info(f"Schedule: 4x/day, batch={self.batch_size}")
             schedule.every().day.at("08:00").do(self.generate_batch_job)
             schedule.every().day.at("12:00").do(self.generate_batch_job)
             schedule.every().day.at("16:00").do(self.generate_batch_job)
             schedule.every().day.at("20:00").do(self.generate_batch_job)
 
         elif self.videos_per_day >= 6:
-            # Moderate: 3 times a day
-            self.logger.info("Schedule: 3 times per day (6-12 videos/day)")
+            self.batch_size = max(1, self.videos_per_day // 3)
+            self.logger.info(f"Schedule: 3x/day, batch={self.batch_size}")
             schedule.every().day.at("09:00").do(self.generate_batch_job)
             schedule.every().day.at("14:00").do(self.generate_batch_job)
             schedule.every().day.at("19:00").do(self.generate_batch_job)
 
         else:
-            # Light: twice a day
-            self.logger.info("Schedule: 2 times per day (2-6 videos/day)")
-            schedule.every().day.at("10:00").do(self.generate_batch_job)
-            schedule.every().day.at("18:00").do(self.generate_batch_job)
+            # 2-5 videos: use individual scheduling
+            self.logger.info(f"Schedule: {self.videos_per_day} individual posts/day")
+            for slot in self.schedule_times[:self.videos_per_day]:
+                t = slot['time']
+                ct = slot.get('type', 'auto')
+                schedule.every().day.at(t).do(self.generate_single_job, content_type=ct)
+                self.logger.info(f"  - {t} -> {ct}")
 
-        # Show next run times
         self._show_next_runs()
 
     def _show_next_runs(self):
         """Display upcoming scheduled runs"""
         jobs = schedule.get_jobs()
         self.logger.info(f"\nScheduled jobs: {len(jobs)}")
-        for i, job in enumerate(jobs[:5], 1):
-            next_run = schedule.next_run()
-            self.logger.info(f"  {i}. Next run: {next_run}")
+        next_time = schedule.next_run()
+        if next_time:
+            self.logger.info(f"  Next run: {next_time}")
 
-    def run_once(self):
-        """Run a single batch immediately (for testing)"""
-        self.logger.info("Running single batch (testing mode)")
-        self.generate_batch_job()
+    def run_once(self, content_type="auto"):
+        """Run a single content generation immediately (for testing)"""
+        self.logger.info(f"Running single {content_type} (testing mode)")
+        self.generate_single_job(content_type=content_type)
 
     def run_forever(self):
         """Start the scheduler and run forever"""
-        self.logger.info("\n" + "="*70)
+        self.logger.info("\n" + "=" * 70)
         self.logger.info("[START] VIDEO SCHEDULER STARTED")
-        self.logger.info("="*70)
+        self.logger.info("=" * 70)
         self.logger.info(f"Target: {self.videos_per_day} videos per day")
         self.logger.info("Press Ctrl+C to stop\n")
 
@@ -129,11 +190,17 @@ class VideoScheduler:
         try:
             while True:
                 schedule.run_pending()
-                time.sleep(60)  # Check every minute
+                time.sleep(60)
 
         except KeyboardInterrupt:
-            self.logger.info("\n\n[STOP]  Scheduler stopped by user")
-            self.logger.info("="*70)
+            self.logger.info("\n\n[STOP] Scheduler stopped by user")
+            self.logger.info("=" * 70)
+            # Clean up TikTok uploader
+            if hasattr(self.pipeline, '_tiktok_uploader'):
+                try:
+                    self.pipeline._tiktok_uploader.close()
+                except:
+                    pass
 
     def run_daemon(self):
         """Run as a background daemon (for production)"""
@@ -157,31 +224,42 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Generate 10 videos per day
-  python scheduler.py --videos-per-day 10
+  # Default: 5 videos per day (2 puzzles, 3 GM games)
+  python scheduler.py
 
-  # Run a single batch now (testing)
+  # Run a single video now (testing)
   python scheduler.py --once
 
-  # Run 20 videos per day as a background daemon
-  python scheduler.py --videos-per-day 20 --daemon
+  # Run a single puzzle video now
+  python scheduler.py --once --type puzzle
+
+  # Custom number of videos per day
+  python scheduler.py --videos-per-day 8
 
   # Custom configuration
-  python scheduler.py --config config.json --videos-per-day 15
+  python scheduler.py --config config.json
         """
     )
 
     parser.add_argument(
         '--videos-per-day',
         type=int,
-        default=10,
-        help='Number of videos to generate per day (default: 10)'
+        default=5,
+        help='Number of videos to generate per day (default: 5)'
     )
 
     parser.add_argument(
         '--once',
         action='store_true',
-        help='Run a single batch immediately and exit (for testing)'
+        help='Run a single content generation immediately and exit'
+    )
+
+    parser.add_argument(
+        '--type',
+        type=str,
+        choices=['game', 'puzzle', 'auto'],
+        default='auto',
+        help='Content type for --once mode (default: auto)'
     )
 
     parser.add_argument(
@@ -196,6 +274,13 @@ Examples:
         help='Path to configuration JSON file'
     )
 
+    parser.add_argument(
+        '--jitter',
+        type=int,
+        default=15,
+        help='Random jitter in minutes for anti-detection (default: 15)'
+    )
+
     args = parser.parse_args()
 
     # Load config
@@ -205,15 +290,14 @@ Examples:
         with open(args.config) as f:
             config = json.load(f)
 
-    # Create scheduler
     scheduler = VideoScheduler(
         videos_per_day=args.videos_per_day,
-        config=config
+        config=config,
+        jitter_minutes=args.jitter
     )
 
-    # Run based on mode
     if args.once:
-        scheduler.run_once()
+        scheduler.run_once(content_type=args.type)
     elif args.daemon:
         try:
             scheduler.run_daemon()
