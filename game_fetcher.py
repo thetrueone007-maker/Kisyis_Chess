@@ -88,7 +88,7 @@ class GameFetcher:
         This contains millions of high-quality master games
         """
         try:
-            print(f"🏆 Fetching {count} master games from Lichess...")
+            print(f"[TROPHY] Fetching {count} master games from Lichess...")
 
             # Use Lichess API to get games from masters database
             # We'll use the TV games endpoint and explore recent master games
@@ -102,14 +102,14 @@ class GameFetcher:
                     if len(games) >= count:
                         break
                 except Exception as e:
-                    print(f"   ⚠️  Error fetching from {player}: {e}")
+                    print(f"   [WARN]  Error fetching from {player}: {e}")
                     continue
 
-            print(f"   ✅ Fetched {len(games)} games from Lichess")
+            print(f"   [OK] Fetched {len(games)} games from Lichess")
             return games[:count]
 
         except Exception as e:
-            print(f"   ❌ Error fetching Lichess masters games: {e}")
+            print(f"   [ERROR] Error fetching Lichess masters games: {e}")
             return []
 
     def fetch_chesscom_games(self, count=5):
@@ -117,7 +117,7 @@ class GameFetcher:
         Fetch recent games from Chess.com API
         """
         try:
-            print(f"♟️  Fetching {count} games from Chess.com...")
+            print(f"[CHESS]  Fetching {count} games from Chess.com...")
             games = []
 
             for player in random.sample(self.chesscom_players, min(3, len(self.chesscom_players))):
@@ -160,14 +160,14 @@ class GameFetcher:
                     time.sleep(0.5)  # Rate limiting
 
                 except Exception as e:
-                    print(f"   ⚠️  Error fetching from Chess.com player {player}: {e}")
+                    print(f"   [WARN]  Error fetching from Chess.com player {player}: {e}")
                     continue
 
-            print(f"   ✅ Fetched {len(games)} games from Chess.com")
+            print(f"   [OK] Fetched {len(games)} games from Chess.com")
             return games[:count]
 
         except Exception as e:
-            print(f"   ❌ Error fetching Chess.com games: {e}")
+            print(f"   [ERROR] Error fetching Chess.com games: {e}")
             return []
 
     def fetch_random_master_game(self):
@@ -187,7 +187,7 @@ class GameFetcher:
             if games:
                 return games[0]
         except Exception as e:
-            print(f"   ⚠️  Error fetching from {source_name}: {e}")
+            print(f"   [WARN]  Error fetching from {source_name}: {e}")
 
         return None
 
@@ -214,7 +214,7 @@ class GameFetcher:
             response = requests.get(url, params=params, headers=headers, timeout=30)
 
             if response.status_code != 200:
-                print(f"   ⚠️  HTTP {response.status_code} for {username}")
+                print(f"   [WARN]  HTTP {response.status_code} for {username}")
                 return []
 
             # Split PGN string into individual games
@@ -243,13 +243,13 @@ class GameFetcher:
                         break
 
             if opening_filter:
-                print(f"   ✅ Found {len(fetched_games)} {opening_filter} games from {username}")
+                print(f"   [OK] Found {len(fetched_games)} {opening_filter} games from {username}")
             else:
-                print(f"   ✅ Found {len(fetched_games)} interesting games from {username}")
+                print(f"   [OK] Found {len(fetched_games)} interesting games from {username}")
             return fetched_games
 
         except Exception as e:
-            print(f"   ⚠️  Error fetching games for {username}: {e}")
+            print(f"   [WARN]  Error fetching games for {username}: {e}")
             return []
 
     def _is_interesting_game(self, game):
@@ -335,9 +335,9 @@ class GameFetcher:
         masters_count = count - lichess_count - chesscom_count
 
         if opening_filter:
-            print(f"\n📊 Fetching {count} games with opening: {opening_filter}")
+            print(f"\n[STATS] Fetching {count} games with opening: {opening_filter}")
         else:
-            print(f"\n📊 Fetching {count} games:")
+            print(f"\n[STATS] Fetching {count} games:")
         print(f"   • {lichess_count} from Lichess players")
         print(f"   • {chesscom_count} from Chess.com")
         print(f"   • {masters_count} from Masters database\n")
@@ -363,7 +363,7 @@ class GameFetcher:
                     if len(games) >= lichess_count:
                         break
                 except Exception as e:
-                    print(f"   ⚠️  Error with {player}: {e}")
+                    print(f"   [WARN]  Error with {player}: {e}")
                     continue
 
         # Fetch from Chess.com
@@ -377,7 +377,7 @@ class GameFetcher:
                     name = f"chesscom_{white}_vs_{black}_{timestamp}"
                     games.append((game, name))
             except Exception as e:
-                print(f"   ⚠️  Error fetching Chess.com: {e}")
+                print(f"   [WARN]  Error fetching Chess.com: {e}")
 
         # Fetch from Masters database
         if masters_count > 0:
@@ -390,20 +390,20 @@ class GameFetcher:
                     name = f"masters_{white}_vs_{black}_{timestamp}"
                     games.append((game, name))
             except Exception as e:
-                print(f"   ⚠️  Error fetching Masters: {e}")
+                print(f"   [WARN]  Error fetching Masters: {e}")
 
         # Save all games
-        print(f"\n💾 Saving {len(games)} games to disk...")
+        print(f"\n Saving {len(games)} games to disk...")
         saved_files = []
         for game, name in games[:count]:
             try:
                 filepath = self.save_game_to_pgn(game, f"{name}.pgn")
                 saved_files.append(filepath)
             except Exception as e:
-                print(f"   ⚠️  Error saving {name}: {e}")
+                print(f"   [WARN]  Error saving {name}: {e}")
                 continue
 
-        print(f"✅ Successfully saved {len(saved_files)} games\n")
+        print(f"[OK] Successfully saved {len(saved_files)} games\n")
         return saved_files
 
 
@@ -424,8 +424,8 @@ if __name__ == "__main__":
     )
 
     print(f"\n{'=' * 70}")
-    print(f"✅ COMPLETE: Fetched {len(files)} games from multiple sources")
+    print(f"[OK] COMPLETE: Fetched {len(files)} games from multiple sources")
     print(f"{'=' * 70}")
     print("\nSaved games:")
     for f in files:
-        print(f"  📄 {f.name}")
+        print(f"   {f.name}")

@@ -9,6 +9,12 @@ from pathlib import Path
 from typing import Optional, List, Dict
 import random
 
+# Import ffmpeg path finder
+try:
+    from ffmpeg_path import FFMPEG_PATH
+except ImportError:
+    FFMPEG_PATH = FFMPEG_PATH
+
 
 class AudioManager:
     """Manage background music and sound effects for chess videos"""
@@ -57,7 +63,7 @@ class AudioManager:
                      list(self.music_dir.glob("*.m4a"))
 
         if not music_files:
-            print("⚠️  No music files found in", self.music_dir)
+            print("[WARN]  No music files found in", self.music_dir)
             print(self.music_recommendations)
             return None
 
@@ -86,7 +92,7 @@ class AudioManager:
             music_path = self.get_random_music()
 
         if music_path is None or not music_path.exists():
-            print(f"⚠️  Music file not found: {music_path}")
+            print(f"[WARN]  Music file not found: {music_path}")
             print("   Skipping audio integration")
             # Just copy the video
             import shutil
@@ -105,7 +111,7 @@ class AudioManager:
         # - Mix with video (which has no audio originally)
 
         cmd = [
-            'ffmpeg', '-y',
+            FFMPEG_PATH, '-y',
             '-i', str(video_path),
             '-stream_loop', '-1',  # Loop audio
             '-i', str(music_path),
@@ -124,14 +130,14 @@ class AudioManager:
             print(f"Adding audio: {music_path.name}")
             result = subprocess.run(cmd, capture_output=True, text=True)
             if result.returncode != 0:
-                print(f"❌ FFmpeg error: {result.stderr}")
+                print(f"[ERROR] FFmpeg error: {result.stderr}")
                 return False
 
-            print(f"✅ Audio added successfully: {output_path}")
+            print(f"[OK] Audio added successfully: {output_path}")
             return True
 
         except Exception as e:
-            print(f"❌ Error adding audio: {e}")
+            print(f"[ERROR] Error adding audio: {e}")
             return False
 
     def _get_video_duration(self, video_path: Path) -> Optional[float]:
@@ -215,7 +221,7 @@ class TikTokAudioOptimizer:
         - Stereo
         """
         cmd = [
-            'ffmpeg', '-y',
+            FFMPEG_PATH, '-y',
             '-i', str(input_video),
             '-c:v', 'copy',
             '-c:a', 'aac',
@@ -242,11 +248,11 @@ if __name__ == "__main__":
     # Check for music files
     music_files = list(manager.music_dir.glob("*.mp3"))
     if music_files:
-        print(f"\n✅ Found {len(music_files)} music file(s)")
+        print(f"\n[OK] Found {len(music_files)} music file(s)")
         for f in music_files[:5]:
             print(f"   - {f.name}")
     else:
-        print("\n⚠️  No music files found!")
+        print("\n[WARN]  No music files found!")
         manager.download_sample_music()
 
     print("\nTo add music to a video, use:")

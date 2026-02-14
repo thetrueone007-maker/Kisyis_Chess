@@ -26,7 +26,7 @@ print(f"  enable_comments: {pipeline.config['enable_comments']}")
 print("\nGenerating video...")
 video = pipeline.generate_video(game, "test_simple")
 
-print(f"\n✅ Video: {video}")
+print(f"\n[OK] Video: {video}")
 print("\nOpen this video and check for:")
 print("  1. LEFT evaluation bar that moves")
 print("  2. Annotation badges (BRILLIANT!!, BLUNDER, etc.)")

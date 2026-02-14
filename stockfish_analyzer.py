@@ -57,24 +57,35 @@ class StockfishAnalyzer:
 
     def _find_stockfish(self):
         """Try to auto-detect Stockfish installation"""
+        import platform
+        is_windows = platform.system() == "Windows"
+        exe = "stockfish.exe" if is_windows else "stockfish"
+
         common_paths = [
-            "./stockfish",  # Project directory (current working directory)
-            str(Path(__file__).parent / "stockfish"),  # Relative to this file
+            str(Path(__file__).parent / exe),  # Relative to this file
+            f"./{exe}",  # Project directory
             "/usr/bin/stockfish",
             "/usr/local/bin/stockfish",
             "/opt/homebrew/bin/stockfish",
-            "stockfish",  # In PATH
         ]
 
         for path in common_paths:
-            if Path(path).exists() or path == "stockfish":
+            p = Path(path)
+            if p.exists() and p.is_file():
                 return path
+
+        # Try system PATH via shutil.which
+        import shutil
+        found = shutil.which("stockfish")
+        if found:
+            return found
 
         raise FileNotFoundError(
             "Could not find Stockfish. Please install it:\n"
+            "  Windows: download from https://stockfishchess.org/download/\n"
+            "           and place stockfish.exe next to this script\n"
             "  Linux: sudo apt install stockfish\n"
-            "  Mac: brew install stockfish\n"
-            "  Or download from: https://stockfishchess.org/download/"
+            "  Mac: brew install stockfish"
         )
 
     def __enter__(self):
@@ -226,20 +237,20 @@ def analyze_pgn_file(pgn_path: Path, stockfish_path=None):
         # Find brilliant moves
         brilliant = [a for a in analyses if a.is_brilliant]
         if brilliant:
-            print(f"\n🌟 Brilliant moves: {len(brilliant)}")
+            print(f"\n[STAR] Brilliant moves: {len(brilliant)}")
             for a in brilliant[:3]:
                 print(f"  Move {a.move_number}: {a.move.uci()} (eval change: {a.eval_change:+.0f})")
 
         # Find blunders
         blunders = [a for a in analyses if a.is_blunder]
         if blunders:
-            print(f"\n⚠️  Blunders: {len(blunders)}")
+            print(f"\n[WARN]  Blunders: {len(blunders)}")
             for a in blunders[:3]:
                 print(f"  Move {a.move_number}: {a.move.uci()} (eval change: {a.eval_change:+.0f})")
 
         # Critical positions
         critical = analyzer.get_critical_positions(analyses, top_n=5)
-        print(f"\n🔥 Critical moments:")
+        print(f"\n[FIRE] Critical moments:")
         for a in critical:
             print(f"  Move {a.move_number}: {a.move.uci()} "
                   f"({analyzer.format_eval_for_display(a.eval_before)} → "

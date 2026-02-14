@@ -65,10 +65,10 @@ class VideoScheduler:
                 count=self.batch_size,
                 mix_ratio=0.5  # 50/50 mix
             )
-            self.logger.info("✅ Batch completed successfully")
+            self.logger.info("[OK] Batch completed successfully")
 
         except Exception as e:
-            self.logger.error(f"❌ Batch failed: {e}", exc_info=True)
+            self.logger.error(f"[ERROR] Batch failed: {e}", exc_info=True)
 
     def setup_schedule(self):
         """Configure the schedule based on videos_per_day"""
@@ -119,7 +119,7 @@ class VideoScheduler:
     def run_forever(self):
         """Start the scheduler and run forever"""
         self.logger.info("\n" + "="*70)
-        self.logger.info("🚀 VIDEO SCHEDULER STARTED")
+        self.logger.info("[START] VIDEO SCHEDULER STARTED")
         self.logger.info("="*70)
         self.logger.info(f"Target: {self.videos_per_day} videos per day")
         self.logger.info("Press Ctrl+C to stop\n")
@@ -132,7 +132,7 @@ class VideoScheduler:
                 time.sleep(60)  # Check every minute
 
         except KeyboardInterrupt:
-            self.logger.info("\n\n⏹️  Scheduler stopped by user")
+            self.logger.info("\n\n[STOP]  Scheduler stopped by user")
             self.logger.info("="*70)
 
     def run_daemon(self):
@@ -218,7 +218,7 @@ Examples:
         try:
             scheduler.run_daemon()
         except ImportError:
-            print("❌ python-daemon not installed")
+            print("[ERROR] python-daemon not installed")
             print("   Install: pip install python-daemon")
             print("   Or run without --daemon flag")
     else:

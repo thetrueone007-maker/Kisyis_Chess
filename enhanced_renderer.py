@@ -13,13 +13,19 @@ from pathlib import Path
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
-from PySide6.QtGui import QImage, QPainter, QPixmap, QColor, QFont, QPen, QPainterPath
+from PySide6.QtGui import (QImage, QPainter, QPixmap, QColor, QFont, QPen, QPainterPath,
+                           QLinearGradient, QBrush)
 from PySide6.QtCore import QPointF, Qt, QRectF
 import chess
 import chess.pgn
 
 # Import base renderer
 from chess_com_like_pyside_6 import Renderer, BACKGROUND_COLOR, LIGHT_COLOR, DARK_COLOR
+
+# Enhanced visual settings
+EVAL_BAR_GRADIENT = True
+COMMENT_BOX_ROUNDED = True
+BADGE_SHADOW = True
 
 
 @dataclass
@@ -75,8 +81,8 @@ class EnhancedRenderer(Renderer):
         self.prev_eval = eval_cp
 
         # Position bar in the LEFT margin (before the board starts)
-        bar_width = int(self.width * 0.035)  # Fixed width
-        bar_x = max(10, self.margin_x - bar_width - 40)  # 10px more to the left
+        bar_width = int(self.width * 0.040)  # Slightly wider
+        bar_x = max(15, self.margin_x - bar_width - 35)
         bar_y = self.margin_y
         bar_height = self.board_size
 
@@ -85,91 +91,76 @@ class EnhancedRenderer(Renderer):
         eval_clamped = max(-max_eval, min(max_eval, eval_cp))
 
         # Calculate white's advantage percentage (0 to 1)
-        # ALWAYS from white's perspective: positive = white winning
         white_ratio = (eval_clamped + max_eval) / (2 * max_eval)
 
-        # Draw background
-        painter.fillRect(
-            int(bar_x),
-            int(bar_y),
-            bar_width,
-            int(bar_height),
-            QColor(50, 50, 50)
-        )
+        # Draw rounded background with shadow
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(QColor(0, 0, 0, 60))
+        painter.drawRoundedRect(int(bar_x + 3), int(bar_y + 3), bar_width, int(bar_height), 6, 6)
+
+        painter.setBrush(QColor(40, 40, 40))
+        painter.drawRoundedRect(int(bar_x), int(bar_y), bar_width, int(bar_height), 6, 6)
 
         # Calculate portion heights
         black_height = int(bar_height * (1 - white_ratio))
         white_height = int(bar_height * white_ratio)
 
+        # Create gradients for a polished look
+        white_gradient = QLinearGradient(bar_x, 0, bar_x + bar_width, 0)
+        white_gradient.setColorAt(0, QColor(250, 250, 250))
+        white_gradient.setColorAt(0.5, QColor(255, 255, 255))
+        white_gradient.setColorAt(1, QColor(235, 235, 235))
+
+        black_gradient = QLinearGradient(bar_x, 0, bar_x + bar_width, 0)
+        black_gradient.setColorAt(0, QColor(35, 35, 35))
+        black_gradient.setColorAt(0.5, QColor(50, 50, 50))
+        black_gradient.setColorAt(1, QColor(30, 30, 30))
+
         if self.flip_board:
             # Black's perspective: white at top, black at bottom
-            # Draw white's portion (top)
-            painter.fillRect(
-                int(bar_x),
-                int(bar_y),
-                bar_width,
-                white_height,
-                QColor(250, 250, 250)
-            )
-            # Draw black's portion (bottom)
-            painter.fillRect(
-                int(bar_x),
-                int(bar_y + white_height),
-                bar_width,
-                black_height,
-                QColor(30, 30, 30)
-            )
+            painter.setBrush(QBrush(white_gradient))
+            painter.drawRoundedRect(int(bar_x), int(bar_y), bar_width, white_height, 6, 6)
+
+            painter.setBrush(QBrush(black_gradient))
+            painter.drawRoundedRect(int(bar_x), int(bar_y + white_height), bar_width, black_height, 6, 6)
         else:
             # White's perspective: black at top, white at bottom
-            # Draw black's portion (top)
-            painter.fillRect(
-                int(bar_x),
-                int(bar_y),
-                bar_width,
-                black_height,
-                QColor(30, 30, 30)
-            )
-            # Draw white's portion (bottom)
-            painter.fillRect(
-                int(bar_x),
-                int(bar_y + black_height),
-                bar_width,
-                white_height,
-                QColor(250, 250, 250)
-            )
+            painter.setBrush(QBrush(black_gradient))
+            painter.drawRoundedRect(int(bar_x), int(bar_y), bar_width, black_height, 6, 6)
 
-        # Draw center line
+            painter.setBrush(QBrush(white_gradient))
+            painter.drawRoundedRect(int(bar_x), int(bar_y + black_height), bar_width, white_height, 6, 6)
+
+        # Draw center line with glow
         center_y = bar_y + bar_height / 2
-        painter.setPen(QPen(QColor(120, 120, 120), 2))
-        painter.drawLine(
-            int(bar_x),
-            int(center_y),
-            int(bar_x + bar_width),
-            int(center_y)
-        )
+        painter.setPen(QPen(QColor(100, 100, 100, 180), 3))
+        painter.drawLine(int(bar_x), int(center_y), int(bar_x + bar_width), int(center_y))
+        painter.setPen(QPen(QColor(150, 150, 150), 1))
+        painter.drawLine(int(bar_x), int(center_y), int(bar_x + bar_width), int(center_y))
 
-        # Draw evaluation text
+        # Draw evaluation text with better styling
         eval_text = self._format_eval(eval_cp)
-        font = QFont("Arial", max(16, int(self.width * 0.020)), QFont.Bold)
+        font = QFont("Arial", max(18, int(self.width * 0.022)), QFont.Bold)
         painter.setFont(font)
+        fm = painter.fontMetrics()
+        text_width = fm.horizontalAdvance(eval_text)
 
         # Position text based on advantage
         text_y = bar_y + black_height
         if white_ratio > 0.5:
-            painter.setPen(QColor(10, 10, 10))
-            text_y = min(text_y + 30, bar_y + bar_height - 15)
+            text_y = min(text_y + 35, bar_y + bar_height - 20)
+            # Shadow
+            painter.setPen(QColor(255, 255, 255, 50))
+            painter.drawText(int(bar_x + (bar_width - text_width) / 2 + 1), int(text_y + 1), eval_text)
+            painter.setPen(QColor(20, 20, 20))
         else:
+            text_y = max(text_y - 18, bar_y + 30)
+            # Shadow
+            painter.setPen(QColor(0, 0, 0, 50))
+            painter.drawText(int(bar_x + (bar_width - text_width) / 2 + 1), int(text_y + 1), eval_text)
             painter.setPen(QColor(250, 250, 250))
-            text_y = max(text_y - 15, bar_y + 25)
 
-        # Center the text
-        fm = painter.fontMetrics()
-        text_width = fm.horizontalAdvance(eval_text)
-        painter.drawText(
-            int(bar_x + (bar_width - text_width) / 2),
-            int(text_y),
-            eval_text
-        )
+        painter.drawText(int(bar_x + (bar_width - text_width) / 2), int(text_y), eval_text)
 
     def _format_eval(self, cp: float) -> str:
         """Format centipawn evaluation"""
@@ -180,80 +171,92 @@ class EnhancedRenderer(Renderer):
             return f"{cp/100:+.1f}"
 
     def draw_move_annotation(self, painter, move_analysis, board_turn):
-        """Draw Chess.com-style move annotation badge"""
+        """Draw Chess.com-style move annotation badge with enhanced styling"""
         if not move_analysis or self.opening_mode:
             return  # Skip annotations in opening mode (theory moves)
 
         # Check if this is checkmate (eval is extreme)
         is_checkmate = abs(move_analysis.eval_after) > 9000
 
-        # Determine annotation type and style
+        # Determine annotation type and style with vibrant colors
         if is_checkmate:
             text = "CHECKMATE!"
-            bg_color = QColor(218, 165, 32)  # Gold
+            bg_color = QColor(255, 193, 7)  # Bright gold
+            accent_color = QColor(255, 220, 100)
             icon = "#"
         elif move_analysis.is_brilliant:
             text = "BRILLIANT!!"
             bg_color = QColor(26, 188, 156)  # Turquoise
+            accent_color = QColor(80, 220, 190)
             icon = "!!"
         elif move_analysis.is_blunder:
             text = "BLUNDER"
-            bg_color = QColor(231, 76, 60)   # Red
+            bg_color = QColor(220, 53, 69)   # Vivid red
+            accent_color = QColor(255, 100, 100)
             icon = "??"
         elif abs(move_analysis.eval_change) > 100 and move_analysis.eval_change > 0:
             text = "GREAT MOVE"
-            bg_color = QColor(46, 204, 113)  # Green
+            bg_color = QColor(40, 167, 69)  # Green
+            accent_color = QColor(100, 200, 120)
             icon = "!"
         elif abs(move_analysis.eval_change) > 50 and move_analysis.eval_change < -50:
-            text = "MISTAKE"  # Shorter than "INACCURACY"
-            bg_color = QColor(241, 196, 15)  # Yellow/Orange
+            text = "MISTAKE"
+            bg_color = QColor(255, 152, 0)  # Orange
+            accent_color = QColor(255, 190, 80)
             icon = "?!"
         elif move_analysis.move == move_analysis.best_move:
             text = "BEST"
-            bg_color = QColor(52, 152, 219)  # Blue
-            icon = "✓"
+            bg_color = QColor(0, 123, 255)  # Blue
+            accent_color = QColor(80, 170, 255)
+            icon = "[OK]"
         else:
             return  # No annotation for normal moves
 
         # Position badge in top-right corner of board
-        badge_width = int(self.width * 0.25)
-        badge_height = int(self.height * 0.045)
-        badge_x = self.margin_x + self.board_size - badge_width - 20
-        badge_y = self.margin_y + 20
+        badge_width = int(self.width * 0.28)
+        badge_height = int(self.height * 0.048)
+        badge_x = self.margin_x + self.board_size - badge_width - 15
+        badge_y = self.margin_y + 15
+        corner_radius = 12
 
-        # Draw badge background with rounded corners
-        painter.setBrush(bg_color)
+        # Draw shadow
         painter.setPen(Qt.NoPen)
-        painter.drawRoundedRect(
-            int(badge_x), int(badge_y),
-            badge_width, badge_height,
-            10, 10
-        )
+        painter.setBrush(QColor(0, 0, 0, 80))
+        painter.drawRoundedRect(int(badge_x + 4), int(badge_y + 4), badge_width, badge_height, corner_radius, corner_radius)
+
+        # Draw gradient background
+        badge_gradient = QLinearGradient(badge_x, badge_y, badge_x, badge_y + badge_height)
+        badge_gradient.setColorAt(0, accent_color)
+        badge_gradient.setColorAt(0.4, bg_color)
+        badge_gradient.setColorAt(1, bg_color.darker(115))
+        painter.setBrush(QBrush(badge_gradient))
+        painter.drawRoundedRect(int(badge_x), int(badge_y), badge_width, badge_height, corner_radius, corner_radius)
+
+        # Draw subtle border
+        painter.setPen(QPen(QColor(255, 255, 255, 60), 2))
+        painter.setBrush(Qt.NoBrush)
+        painter.drawRoundedRect(int(badge_x), int(badge_y), badge_width, badge_height, corner_radius, corner_radius)
 
         # Draw badge text
-        font = QFont("Arial", max(18, int(self.width * 0.022)), QFont.Bold)
+        font = QFont("Arial", max(20, int(self.width * 0.024)), QFont.Bold)
         painter.setFont(font)
-        painter.setPen(QColor(255, 255, 255))
-
         fm = painter.fontMetrics()
         text_width = fm.horizontalAdvance(text)
-        text_x = badge_x + (badge_width - text_width) / 2
+        text_x = badge_x + (badge_width - text_width) / 2 + 10
         text_y = badge_y + badge_height / 2 + fm.height() / 3
 
-        painter.drawText(
-            int(text_x),
-            int(text_y),
-            text
-        )
+        # Text shadow
+        painter.setPen(QColor(0, 0, 0, 100))
+        painter.drawText(int(text_x + 2), int(text_y + 2), text)
+
+        # Main text
+        painter.setPen(QColor(255, 255, 255))
+        painter.drawText(int(text_x), int(text_y), text)
 
         # Draw icon on left side of badge
-        icon_font = QFont("Arial", max(22, int(self.width * 0.028)), QFont.Bold)
+        icon_font = QFont("Arial", max(24, int(self.width * 0.030)), QFont.Bold)
         painter.setFont(icon_font)
-        painter.drawText(
-            int(badge_x + 10),
-            int(text_y),
-            icon
-        )
+        painter.drawText(int(badge_x + 15), int(text_y), icon)
 
     def draw_move_arrow(self, painter, from_sq: int, to_sq: int,
                        color: Tuple[int, int, int, int], width: int = 8):
@@ -332,34 +335,55 @@ class EnhancedRenderer(Renderer):
         )
 
     def draw_text_comment(self, painter, comment: str, opacity: float = 1.0):
-        """Draw commentary text at the bottom"""
+        """Draw commentary text at the bottom with modern styling"""
         if not self.show_comments or not comment:
             return
 
         # Comment box dimensions
-        box_height = int(self.height * 0.12)
-        box_y = self.height - box_height - 20
-        box_x = 20
-        box_width = self.width - 40
+        box_height = int(self.height * 0.11)
+        box_y = self.height - box_height - 30
+        box_x = 30
+        box_width = self.width - 60
+        corner_radius = 16
 
-        # Semi-transparent background
-        painter.setOpacity(opacity * 0.85)
-        painter.fillRect(box_x, box_y, box_width, box_height, QColor(20, 20, 30))
-
-        # Draw border
-        painter.setPen(QPen(QColor(100, 100, 255), 2))
-        painter.drawRect(box_x, box_y, box_width, box_height)
-
-        # Draw text
         painter.setOpacity(opacity)
-        font_size = max(16, int(self.width * 0.030))
-        font = QFont("Helvetica", font_size, QFont.Bold)
-        painter.setFont(font)
-        painter.setPen(QColor(255, 255, 255))
 
-        # Word wrap text
-        text_rect = QRectF(box_x + 20, box_y + 10, box_width - 40, box_height - 20)
-        painter.drawText(text_rect, Qt.AlignLeft | Qt.TextWordWrap, comment)
+        # Draw shadow
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(QColor(0, 0, 0, int(100 * opacity)))
+        painter.drawRoundedRect(box_x + 5, box_y + 5, box_width, box_height, corner_radius, corner_radius)
+
+        # Draw gradient background
+        bg_gradient = QLinearGradient(box_x, box_y, box_x, box_y + box_height)
+        bg_gradient.setColorAt(0, QColor(30, 30, 40, 240))
+        bg_gradient.setColorAt(1, QColor(20, 20, 25, 250))
+        painter.setBrush(QBrush(bg_gradient))
+        painter.drawRoundedRect(box_x, box_y, box_width, box_height, corner_radius, corner_radius)
+
+        # Draw accent border
+        accent_gradient = QLinearGradient(box_x, box_y, box_x + box_width, box_y)
+        accent_gradient.setColorAt(0, QColor(118, 150, 86))  # Match board green
+        accent_gradient.setColorAt(0.5, QColor(150, 180, 100))
+        accent_gradient.setColorAt(1, QColor(118, 150, 86))
+        painter.setPen(QPen(QBrush(accent_gradient), 3))
+        painter.setBrush(Qt.NoBrush)
+        painter.drawRoundedRect(box_x, box_y, box_width, box_height, corner_radius, corner_radius)
+
+        # Draw text with shadow
+        font_size = max(18, int(self.width * 0.032))
+        font = QFont("Arial", font_size, QFont.Bold)
+        painter.setFont(font)
+
+        text_rect = QRectF(box_x + 25, box_y + 15, box_width - 50, box_height - 30)
+
+        # Text shadow
+        painter.setPen(QColor(0, 0, 0, 80))
+        shadow_rect = QRectF(text_rect.x() + 2, text_rect.y() + 2, text_rect.width(), text_rect.height())
+        painter.drawText(shadow_rect, Qt.AlignLeft | Qt.AlignVCenter | Qt.TextWordWrap, comment)
+
+        # Main text
+        painter.setPen(QColor(255, 255, 255))
+        painter.drawText(text_rect, Qt.AlignLeft | Qt.AlignVCenter | Qt.TextWordWrap, comment)
 
         painter.setOpacity(1.0)
 

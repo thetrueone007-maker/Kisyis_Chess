@@ -17,10 +17,10 @@ pipeline.config['enable_audio'] = False
 pipeline.config['stockfish_depth'] = 12  # Faster analysis
 pipeline.config['stockfish_time'] = 0.05  # Faster per position
 
-print("🚀 Generating quick test video...")
+print("[START] Generating quick test video...")
 video = pipeline.generate_video(game, "quick_test")
 
-print(f"\n✅ VIDÉO PRÊTE: {video}")
-print("\n🎬 Vérifiez:")
-print("  ✓ Barre d'évaluation à GAUCHE")
-print("  ✓ Badges d'annotation (BRILLIANT, BLUNDER, etc.)")
+print(f"\n[OK] VIDÉO PRÊTE: {video}")
+print("\n Vérifiez:")
+print("  [OK] Barre d'évaluation à GAUCHE")
+print("  [OK] Badges d'annotation (BRILLIANT, BLUNDER, etc.)")

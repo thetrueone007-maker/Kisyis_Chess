@@ -19,9 +19,16 @@ from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QImage, QPainter
 from PySide6.QtCore import QPointF
 
+# Import ffmpeg path finder
+try:
+    from ffmpeg_path import FFMPEG_PATH
+except ImportError:
+    FFMPEG_PATH = 'ffmpeg'
+
 # Import our modules
 from game_fetcher import GameFetcher
 from enhanced_renderer import EnhancedRenderer, MoveHighlight, TextComment
+from ultra_renderer import UltraRenderer, MoveHighlight as UltraMoveHighlight
 from comment_generator import CommentGenerator, CommentScheduler
 from audio_manager import AudioManager
 from tiktok_manager import TikTokVideoPrep
@@ -32,7 +39,7 @@ try:
     STOCKFISH_AVAILABLE = True
 except:
     STOCKFISH_AVAILABLE = False
-    print("⚠️  Stockfish not available - evaluation features disabled")
+    print("[WARN]  Stockfish not available - evaluation features disabled")
 
 
 class ChessTikTokPipeline:
@@ -81,7 +88,7 @@ class ChessTikTokPipeline:
                 node = node.add_variation(move)
                 board.push(move)
             except Exception as e:
-                print(f"⚠️  Error parsing move '{move_san}': {e}")
+                print(f"[WARN]  Error parsing move '{move_san}': {e}")
                 break
 
         # Store opening metadata for later use
@@ -133,21 +140,26 @@ class ChessTikTokPipeline:
             'sfx_dir': './audio/sfx',
             'game_cache': './game_cache.json',
             'anthropic_api_key': None,  # Set via env var
-            'stockfish_path': str(Path(__file__).parent / 'stockfish'),  # Use local Stockfish
+            'stockfish_path': None,  # Auto-detect Stockfish
 
-            # Rendering settings
+            # Rendering settings - ULTRA QUALITY with NVENC GPU acceleration
             'width': 1440,
             'height': 2560,
             'fps': 120,
-            'move_seconds': 1,  # 30% slower than before (0.7 * 1.30)
+            'move_seconds': 1,
+            'crf': 20,  # Quality (only used for CPU fallback)
+            'preset': 'p4',  # NVENC preset (p1=fastest, p7=slowest)
+            'use_nvenc': True,  # Use NVIDIA GPU encoding
+            'use_ultra_renderer': True,  # Use premium UltraRenderer
 
             # Feature flags
             'enable_eval_bar': STOCKFISH_AVAILABLE,
             'enable_highlights': True,
-            'enable_comments': True,
+            'enable_comments': False,
             'enable_audio': True,
             'enable_auto_upload': False,  # Auto-upload to TikTok
             'enable_opening_mode': False,  # Opening theory mode (no move annotations)
+            'enable_piece_shadows': True,  # Premium piece shadows
 
             # Analysis settings
             'stockfish_depth': 20,  # Increased for better analysis
@@ -180,15 +192,15 @@ class ChessTikTokPipeline:
                     time_limit=self.config['stockfish_time']
                 ) as analyzer:
                     analyses = analyzer.analyze_game(game)
-                    print(f"   ✅ Analyzed {len(analyses)} moves")
+                    print(f"   [OK] Analyzed {len(analyses)} moves")
 
                     # Show statistics
                     brilliant = sum(1 for a in analyses if a.is_brilliant)
                     blunders = sum(1 for a in analyses if a.is_blunder)
-                    print(f"   🌟 {brilliant} brilliant moves")
-                    print(f"   ⚠️  {blunders} blunders")
+                    print(f"   [STAR] {brilliant} brilliant moves")
+                    print(f"   [WARN]  {blunders} blunders")
             except Exception as e:
-                print(f"   ⚠️  Stockfish analysis failed: {e}")
+                print(f"   [WARN]  Stockfish analysis failed: {e}")
                 analyses = None
 
         # Step 2: Generate comments
@@ -206,13 +218,13 @@ class ChessTikTokPipeline:
                         self.comment_generator,
                         game
                     )
-                    print(f"   ✅ Generated {len(comment_timeline)} comments")
+                    print(f"   [OK] Generated {len(comment_timeline)} comments")
                 else:
                     # Basic comments without analysis
                     comment_timeline[0] = self.comment_generator.generate_opening_comment(game)
-                    print(f"   ✅ Generated opening comment")
+                    print(f"   [OK] Generated opening comment")
             except Exception as e:
-                print(f"   ⚠️  Comment generation failed: {e}")
+                print(f"   [WARN]  Comment generation failed: {e}")
 
         # Step 3: Render video
         print("\n[3/8] Rendering video...")
@@ -227,27 +239,44 @@ class ChessTikTokPipeline:
             # Check if opening assets exist (at least one piece)
             if (opening_assets / 'wK.png').exists():
                 assets_dir = self.config['assets_opening_dir']
-                print("   🎨 Using opening mode assets")
+                print("   [ART] Using opening mode assets")
 
         # Check if board should be flipped for black's perspective
         flip_board = False
         if hasattr(game, 'opening_data') and game.opening_data.get('side') == 'black':
             flip_board = True
-            print("   🔄 Flipping board for black's perspective")
+            print("   [REFRESH] Flipping board for black's perspective")
 
-        renderer = EnhancedRenderer(
-            assets_dir=assets_dir,
-            width=self.config['width'],
-            height=self.config['height'],
-            fps=self.config['fps'],
-            out_dir=self.config['renders_dir'],
-            move_seconds=self.config['move_seconds'],
-            show_eval_bar=self.config['enable_eval_bar'] and analyses is not None,
-            show_highlights=self.config['enable_highlights'],
-            show_comments=self.config['enable_comments'],
-            opening_mode=self.config['enable_opening_mode'],
-            flip_board=flip_board
-        )
+        # Choose renderer based on config
+        if self.config.get('use_ultra_renderer', True):
+            print("   Premium UltraRenderer active")
+            renderer = UltraRenderer(
+                assets_dir=assets_dir,
+                width=self.config['width'],
+                height=self.config['height'],
+                fps=self.config['fps'],
+                out_dir=self.config['renders_dir'],
+                move_seconds=self.config['move_seconds'],
+                show_eval_bar=self.config['enable_eval_bar'] and analyses is not None,
+                show_highlights=self.config['enable_highlights'],
+                show_comments=self.config['enable_comments'],
+                opening_mode=self.config['enable_opening_mode'],
+                flip_board=flip_board
+            )
+        else:
+            renderer = EnhancedRenderer(
+                assets_dir=assets_dir,
+                width=self.config['width'],
+                height=self.config['height'],
+                fps=self.config['fps'],
+                out_dir=self.config['renders_dir'],
+                move_seconds=self.config['move_seconds'],
+                show_eval_bar=self.config['enable_eval_bar'] and analyses is not None,
+                show_highlights=self.config['enable_highlights'],
+                show_comments=self.config['enable_comments'],
+                opening_mode=self.config['enable_opening_mode'],
+                flip_board=flip_board
+            )
 
         try:
             self._render_enhanced_game(
@@ -257,9 +286,9 @@ class ChessTikTokPipeline:
                 comment_timeline,
                 video_path
             )
-            print(f"   ✅ Rendered: {video_path}")
+            print(f"   [OK] Rendered: {video_path}")
         except Exception as e:
-            print(f"   ❌ Rendering failed: {e}")
+            print(f"   [ERROR] Rendering failed: {e}")
             return None
 
         # Step 4: Add piece sounds
@@ -275,10 +304,10 @@ class ChessTikTokPipeline:
 
         if piece_sounds_added:
             final_video = piece_sound_path
-            print(f"   ✅ Piece sounds added")
+            print(f"   [OK] Piece sounds added")
         else:
             final_video = video_path
-            print(f"   ⚠️  Using video without piece sounds")
+            print(f"   [WARN]  Using video without piece sounds")
 
         # Step 5: Add background music
         if self.config['enable_audio']:
@@ -291,9 +320,9 @@ class ChessTikTokPipeline:
             )
             if success:
                 final_video = audio_path
-                print(f"   ✅ Background music added")
+                print(f"   [OK] Background music added")
             else:
-                print(f"   ⚠️  Skipping background music (no music files found)")
+                print(f"   [WARN]  Skipping background music (no music files found)")
         else:
             print("\n[5/8] Skipping background music (disabled)")
 
@@ -304,7 +333,7 @@ class ChessTikTokPipeline:
         original_output_dir = self.tiktok_prep.output_dir
         if self.config.get('enable_opening_mode', False):
             self.tiktok_prep.output_dir = Path(self.config['tiktok_opening_dir'])
-            print("   📁 Saving to opening mode folder")
+            print("   [FOLDER] Saving to opening mode folder")
 
         tiktok_video = self.tiktok_prep.optimize_for_tiktok(
             final_video,
@@ -315,7 +344,7 @@ class ChessTikTokPipeline:
         self.tiktok_prep.output_dir = original_output_dir
 
         if not tiktok_video:
-            print(f"   ❌ Optimization failed")
+            print(f"   [ERROR] Optimization failed")
             return None
 
         # Step 7: Prepare metadata
@@ -324,7 +353,7 @@ class ChessTikTokPipeline:
         black = game.headers.get('Black', 'Player')
         event = game.headers.get('Event', 'Chess Game')
 
-        title = f"♟️ {white} vs {black}"
+        title = f"[CHESS] {white} vs {black}"
         hashtags = self.comment_generator.generate_hashtags(game)
         description = f"{event} - {game.headers.get('Result', '*')}"
 
@@ -344,9 +373,9 @@ class ChessTikTokPipeline:
                     self._tiktok_uploader = TikTokAutoUploader(headless=False, debug=True)
 
                     # Check if already logged in, otherwise prompt for login
-                    print("🔑 Première connexion à TikTok requise...")
+                    print("[KEY] Première connexion à TikTok requise...")
                     if not self._tiktok_uploader.login_with_google():
-                        print("⚠️  Échec de la connexion TikTok, vidéo sauvegardée localement")
+                        print("[WARN]  Échec de la connexion TikTok, vidéo sauvegardée localement")
                         self._tiktok_uploader.close()
                         delattr(self, '_tiktok_uploader')
                         return tiktok_video
@@ -362,12 +391,12 @@ class ChessTikTokPipeline:
                 )
 
                 if success:
-                    print("✅ Vidéo uploadée sur TikTok avec succès!")
+                    print("[OK] Vidéo uploadée sur TikTok avec succès!")
                 else:
-                    print("⚠️  Upload TikTok échoué, vidéo sauvegardée localement")
+                    print("[WARN]  Upload TikTok échoué, vidéo sauvegardée localement")
 
             except Exception as e:
-                print(f"⚠️  Erreur lors de l'upload TikTok: {e}")
+                print(f"[WARN]  Erreur lors de l'upload TikTok: {e}")
                 print("   Vidéo sauvegardée localement")
                 # Clean up uploader on error
                 if hasattr(self, '_tiktok_uploader'):
@@ -380,7 +409,7 @@ class ChessTikTokPipeline:
             print("\n[8/8] Auto-upload TikTok désactivé")
 
         print(f"\n{'='*70}")
-        print(f"✅ VIDEO COMPLETE: {tiktok_video}")
+        print(f"[OK] VIDEO COMPLETE: {tiktok_video}")
         print(f"{'='*70}\n")
 
         return tiktok_video
@@ -391,21 +420,47 @@ class ChessTikTokPipeline:
         header_title = game.headers.get('Event') or game.headers.get('Title') or output_path.stem
         moves = list(game.mainline_moves())
 
-        # Setup ffmpeg pipe
-        ffmpeg_cmd = [
-            'ffmpeg', '-y',
-            '-f', 'rawvideo',
-            '-pix_fmt', 'rgba',
-            '-s', f'{renderer.width}x{renderer.height}',
-            '-r', str(renderer.fps),
-            '-i', '-',
-            '-an',
-            '-c:v', 'libx264',
-            '-pix_fmt', 'yuv420p',
-            '-crf', '18',
-            '-preset', 'slow',
-            str(output_path)
-        ]
+        # Setup ffmpeg pipe - use NVENC GPU encoding if available
+        use_nvenc = self.config.get('use_nvenc', True)
+
+        if use_nvenc:
+            # NVIDIA NVENC - massively faster with GPU
+            preset = self.config.get('preset', 'p4')  # p1=fastest, p7=best quality
+            ffmpeg_cmd = [
+                FFMPEG_PATH, '-y',
+                '-f', 'rawvideo',
+                '-pix_fmt', 'rgba',
+                '-s', f'{renderer.width}x{renderer.height}',
+                '-r', str(renderer.fps),
+                '-i', '-',
+                '-an',
+                '-c:v', 'hevc_nvenc',  # NVIDIA H.265 encoder
+                '-pix_fmt', 'p010le',  # 10-bit for better quality
+                '-preset', preset,
+                '-rc', 'vbr',  # Variable bitrate
+                '-cq', '24',  # Quality level (lower = better, 18-28 good range)
+                '-b:v', '15M',  # Target bitrate
+                '-maxrate', '25M',
+                '-bufsize', '30M',
+                str(output_path)
+            ]
+        else:
+            # CPU fallback with libx264
+            crf = self.config.get('crf', 20)
+            ffmpeg_cmd = [
+                FFMPEG_PATH, '-y',
+                '-f', 'rawvideo',
+                '-pix_fmt', 'rgba',
+                '-s', f'{renderer.width}x{renderer.height}',
+                '-r', str(renderer.fps),
+                '-i', '-',
+                '-an',
+                '-c:v', 'libx264',
+                '-pix_fmt', 'yuv420p',
+                '-crf', str(crf),
+                '-preset', 'fast',
+                str(output_path)
+            ]
 
         proc = subprocess.Popen(ffmpeg_cmd, stdin=subprocess.PIPE)
 
@@ -446,6 +501,20 @@ class ChessTikTokPipeline:
             to_sq = move.to_square
             moving_piece = board.piece_at(from_sq)
             is_capture = board.is_capture(move)
+            is_castling = board.is_castling(move)
+
+            # Handle castling - need to move both king and rook
+            rook_from_sq = None
+            rook_to_sq = None
+            rook_piece = None
+            if is_castling:
+                if to_sq > from_sq:  # Kingside castling
+                    rook_from_sq = to_sq + 1
+                    rook_to_sq = from_sq + 1
+                else:  # Queenside castling
+                    rook_from_sq = to_sq - 2
+                    rook_to_sq = from_sq - 1
+                rook_piece = board.piece_at(rook_from_sq)
 
             capture_sq = None
             if is_capture:
@@ -465,7 +534,11 @@ class ChessTikTokPipeline:
                 else:
                     color = renderer.highlight_colors['default']
 
-                highlights = [MoveHighlight(from_sq, to_sq, color)]
+                # Use appropriate MoveHighlight class based on renderer
+                if isinstance(renderer, UltraRenderer):
+                    highlights = [UltraMoveHighlight(from_sq, to_sq, color)]
+                else:
+                    highlights = [MoveHighlight(from_sq, to_sq, color)]
 
             # Render move frames
             for f in range(frames_per_move):
@@ -481,11 +554,13 @@ class ChessTikTokPipeline:
                     to_sq=to_sq,
                     progress=p,
                     capture_sq=capture_sq,
-                    capture_fade=cap_op
+                    capture_fade=cap_op,
+                    rook_piece=rook_piece,
+                    rook_from_sq=rook_from_sq,
+                    rook_to_sq=rook_to_sq
                 )
 
                 eval_cp = analysis.eval_after if analysis else 0
-                comment = comment_timeline.get(current_frame + f, "")
 
                 # Show annotation badge during the second half of the move animation
                 show_annotation = f > frames_per_move // 2
@@ -498,7 +573,7 @@ class ChessTikTokPipeline:
                     1.0,
                     eval_cp=eval_cp,
                     highlights=highlights if f > frames_per_move // 3 else None,
-                    comment=comment,
+                    comment=None,
                     move_annotation=analysis if (show_annotation and analysis) else None
                 )
                 proc.stdin.write(qimg.bits().tobytes())
@@ -511,7 +586,6 @@ class ChessTikTokPipeline:
         for i in range(pause_frames):
             positions = renderer.compose_piece_positions(board)
             eval_cp = analyses[-1].eval_after if analyses else 0
-            comment = comment_timeline.get(current_frame + i, "")
             qimg = renderer.render_enhanced_frame(
                 board,
                 positions,
@@ -519,7 +593,7 @@ class ChessTikTokPipeline:
                 'small',
                 1.0,
                 eval_cp=eval_cp,
-                comment=comment
+                comment=None
             )
             proc.stdin.write(qimg.bits().tobytes())
 
@@ -537,9 +611,9 @@ class ChessTikTokPipeline:
             mix_ratio: Ratio of Lichess vs classic games
             opening_filter: Filter games by opening (e.g., "Sicilian", "French", "B20")
         """
-        print(f"\n🚀 Starting batch generation: {count} videos")
+        print(f"\n[START] Starting batch generation: {count} videos")
         if opening_filter:
-            print(f"   🎯 Opening filter: {opening_filter}")
+            print(f"   [TARGET] Opening filter: {opening_filter}")
         print(f"   Mix: {int(mix_ratio*100)}% Lichess / {int((1-mix_ratio)*100)}% Classic")
 
         # Calculate upload delay if auto-upload is enabled
@@ -549,12 +623,12 @@ class ChessTikTokPipeline:
             upload_delay_seconds = (24 * 3600) / count
             hours = int(upload_delay_seconds // 3600)
             minutes = int((upload_delay_seconds % 3600) // 60)
-            print(f"   📤 Auto-upload enabled: posts every {hours}h{minutes:02d}min")
+            print(f"   [UPLOAD] Auto-upload enabled: posts every {hours}h{minutes:02d}min")
 
         # Check if using JSON opening definition
         if opening_filter and opening_filter.endswith('.json'):
             # Generate from JSON opening definition (always 1 video per JSON)
-            print(f"\n📚 Loading opening from JSON: {opening_filter}")
+            print(f"\n[BOOK] Loading opening from JSON: {opening_filter}")
             games_to_process = []
 
             try:
@@ -562,15 +636,15 @@ class ChessTikTokPipeline:
                 game_name = Path(opening_filter).stem
                 games_to_process.append((game, game_name, opening_filter))  # Add filename for archiving
             except Exception as e:
-                print(f"   ❌ Error loading opening: {e}")
+                print(f"   [ERROR] Error loading opening: {e}")
                 return
 
-            print(f"✅ Loaded opening theory: 1 video\n")
+            print(f"[OK] Loaded opening theory: 1 video\n")
         else:
             # Fetch games online
-            print("\n📥 Fetching games...")
+            print("\n[DOWNLOAD] Fetching games...")
             pgn_files = self.game_fetcher.fetch_batch_games(count, mix_ratio, opening_filter)
-            print(f"✅ Fetched {len(pgn_files)} games\n")
+            print(f"[OK] Fetched {len(pgn_files)} games\n")
 
             games_to_process = []
             for pgn_file in pgn_files:
@@ -585,7 +659,7 @@ class ChessTikTokPipeline:
             print(f"\n[{i}/{len(games_to_process)}] Processing: {game_name}")
 
             if not game:
-                print(f"   ❌ Could not read game")
+                print(f"   [ERROR] Could not read game")
                 continue
 
             video_path = self.generate_video(game, game_name)
@@ -598,9 +672,9 @@ class ChessTikTokPipeline:
                         source = Path('openings') / json_file
                         dest = Path('openings/archive') / json_file
                         shutil.move(str(source), str(dest))
-                        print(f"   📦 Archived: {json_file} → archive/")
+                        print(f"   [ARCHIVE] Archived: {json_file} → archive/")
                     except Exception as e:
-                        print(f"   ⚠️  Could not archive {json_file}: {e}")
+                        print(f"   [WARN]  Could not archive {json_file}: {e}")
 
                 # Wait between uploads if auto-upload is enabled and not the last video
                 if self.config.get('enable_auto_upload', False) and i < len(games_to_process):
@@ -613,7 +687,7 @@ class ChessTikTokPipeline:
                     actual_delay = upload_delay_seconds * variation
 
                     next_upload_time = datetime.now() + timedelta(seconds=actual_delay)
-                    print(f"\n⏰ Waiting until {next_upload_time.strftime('%H:%M:%S')} for next upload...")
+                    print(f"\n[TIME] Waiting until {next_upload_time.strftime('%H:%M:%S')} for next upload...")
                     print(f"   ({int(actual_delay//3600)}h {int((actual_delay%3600)//60)}min delay - randomized)")
 
                     # Sleep with progress updates
@@ -624,11 +698,11 @@ class ChessTikTokPipeline:
                         elapsed += sleep_interval
                         remaining = actual_delay - elapsed
                         if remaining > 0:
-                            print(f"   ⏳ {int(remaining//60)} minutes remaining until next upload...")
+                            print(f"   [WAIT] {int(remaining//60)} minutes remaining until next upload...")
 
         # Clean up TikTok uploader if it was used
         if hasattr(self, '_tiktok_uploader'):
-            print("\n🔒 Closing browser...")
+            print("\n[LOCK] Closing browser...")
             try:
                 self._tiktok_uploader.close()
             except:
@@ -636,7 +710,7 @@ class ChessTikTokPipeline:
             delattr(self, '_tiktok_uploader')
 
         print(f"\n{'='*70}")
-        print(f"🎉 BATCH COMPLETE: {success_count}/{len(games_to_process)} videos generated")
+        print(f"[DONE] BATCH COMPLETE: {success_count}/{len(games_to_process)} videos generated")
         print(f"{'='*70}\n")
 
         # Show upload instructions
@@ -684,10 +758,10 @@ def main():
         json_files = sorted(openings_dir.glob('*.json'))
 
         if not json_files:
-            print("❌ No JSON files found in openings/")
+            print("[ERROR] No JSON files found in openings/")
             return
 
-        print(f"\n🎯 ALL-OPENINGS MODE: {len(json_files)} openings found")
+        print(f"\n[TARGET] ALL-OPENINGS MODE: {len(json_files)} openings found")
         print("=" * 70)
 
         for json_file in json_files:

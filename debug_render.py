@@ -75,7 +75,7 @@ qimg = renderer.render_enhanced_frame(
 test_file = Path("temp/debug_frame.png")
 qimg.save(str(test_file))
 
-print(f"\n✅ Test frame saved: {test_file}")
+print(f"\n[OK] Test frame saved: {test_file}")
 print("\nCheck this image for:")
 print("  1. Evaluation bar on the LEFT (should show +1.2)")
 print("  2. BRILLIANT!! badge in top-right")

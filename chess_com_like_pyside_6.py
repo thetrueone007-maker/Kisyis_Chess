@@ -18,13 +18,20 @@ import subprocess
 from pathlib import Path
 from time import time
 
-from PySide6.QtGui import QImage, QPainter, QPixmap, QColor, QFont
-from PySide6.QtCore import QPointF
+from PySide6.QtGui import (QImage, QPainter, QPixmap, QColor, QFont,
+                           QLinearGradient, QRadialGradient, QPen, QBrush)
+from PySide6.QtCore import QPointF, Qt, QRectF
 from PySide6.QtWidgets import QApplication
 
 import chess
 import chess.pgn
 from PIL import Image
+
+# Import ffmpeg path finder
+try:
+    from ffmpeg_path import FFMPEG_PATH
+except ImportError:
+    FFMPEG_PATH = 'ffmpeg'  # Fallback to PATH
 
 # ----------------- Defaults / Config -----------------
 DEFAULT_FPS = 120
@@ -34,13 +41,31 @@ BOARD_SQUARES = 8
 TITLE_BIG_SECONDS = 1.0
 TITLE_SHRINK_SECONDS = 0.6
 MOVE_SECONDS = 0.7    # slower moves (50% slower)
-BACKGROUND_COLOR = (0, 0, 0, 0)  # transparent background
-LIGHT_COLOR = (235, 245, 255)   # white-ish square
-DARK_COLOR = (30, 100, 170)     # blue square
+
+# Modern chess.com-inspired color scheme
+BACKGROUND_COLOR = (22, 21, 18, 255)  # Dark wood background
+LIGHT_COLOR = (238, 238, 210)   # Cream/beige for light squares
+DARK_COLOR = (118, 150, 86)     # Green for dark squares (chess.com style)
+
+# Alternative color schemes (can be switched)
+# Blue theme:
+# LIGHT_COLOR = (235, 245, 255)
+# DARK_COLOR = (30, 100, 170)
+
+# Brown/wood theme:
+# LIGHT_COLOR = (240, 217, 181)
+# DARK_COLOR = (181, 136, 99)
+
 PIECE_SCALE = 0.92
-COORD_FONT_RATIO = 0.035
+COORD_FONT_RATIO = 0.038  # Slightly larger coords
 TITLE_BIG_RATIO = 0.12
-TITLE_SMALL_RATIO = 0.045
+TITLE_SMALL_RATIO = 0.048  # Slightly larger small title
+
+# Visual enhancements
+ENABLE_SHADOWS = True
+SHADOW_OFFSET = 4
+SHADOW_BLUR = 8
+COORD_COLOR = (40, 40, 40)  # Dark gray for coordinates
 
 PIECE_FILENAME_MAP = {
     ('w','K'): 'wK.png', ('w','Q'): 'wQ.png', ('w','R'): 'wR.png', ('w','B'): 'wB.png', ('w','N'): 'wN.png', ('w','P'): 'wP.png',
@@ -96,68 +121,125 @@ class Renderer:
         return QPointF(x, y)
 
     def draw_board_background(self, painter):
-        painter.fillRect(0, 0, self.width, self.height, QColor(*BACKGROUND_COLOR))
+        # Draw gradient background
+        gradient = QLinearGradient(0, 0, 0, self.height)
+        gradient.setColorAt(0, QColor(35, 35, 40))
+        gradient.setColorAt(0.5, QColor(22, 21, 18))
+        gradient.setColorAt(1, QColor(15, 15, 12))
+        painter.fillRect(0, 0, self.width, self.height, QBrush(gradient))
+
+        # Draw board border/frame
+        border_size = 8
+        painter.fillRect(
+            int(self.margin_x - border_size),
+            int(self.margin_y - border_size),
+            int(self.board_size + border_size * 2),
+            int(self.board_size + border_size * 2),
+            QColor(60, 50, 40)
+        )
+
+        # Draw squares with subtle gradient for depth
         for r in range(8):
             for f in range(8):
                 x = int(self.margin_x + f * self.square_size)
                 y = int(self.margin_y + r * self.square_size)
-                color = LIGHT_COLOR if ((f + r) % 2 == 0) else DARK_COLOR
-                painter.fillRect(x, y, int(self.square_size)+1, int(self.square_size)+1, QColor(*color))
-        coord_font_size = max(12, int(self.square_size * COORD_FONT_RATIO))
-        font = QFont("Helvetica", coord_font_size)
+                is_light = (f + r) % 2 == 0
+                base_color = LIGHT_COLOR if is_light else DARK_COLOR
+
+                # Subtle gradient on each square for 3D effect
+                sq_gradient = QLinearGradient(x, y, x, y + self.square_size)
+                if is_light:
+                    sq_gradient.setColorAt(0, QColor(base_color[0] + 8, base_color[1] + 8, base_color[2] + 5))
+                    sq_gradient.setColorAt(1, QColor(base_color[0] - 10, base_color[1] - 10, base_color[2] - 15))
+                else:
+                    sq_gradient.setColorAt(0, QColor(base_color[0] + 12, base_color[1] + 15, base_color[2] + 8))
+                    sq_gradient.setColorAt(1, QColor(base_color[0] - 8, base_color[1] - 10, base_color[2] - 5))
+
+                painter.fillRect(x, y, int(self.square_size) + 1, int(self.square_size) + 1, QBrush(sq_gradient))
+
+        # Draw coordinates with better styling
+        coord_font_size = max(14, int(self.square_size * COORD_FONT_RATIO))
+        font = QFont("Arial", coord_font_size, QFont.Bold)
         painter.setFont(font)
-        painter.setPen(QColor(40,40,40))
+
         for i in range(8):
-            fx = int(self.margin_x + i*self.square_size + 6)
-            fy = int(self.margin_y + self.board_size - 6)
-            # Files: a-h for white, h-a for black
+            # Determine square color for contrast
+            is_light_bottom = ((i + 7) % 2 == 0)
+            is_light_side = ((0 + (7 - i)) % 2 == 0) if not self.flip_board else ((0 + i) % 2 == 0)
+
+            # File labels (a-h) at bottom
             file_label = chr(ord('a') + (7 - i) if self.flip_board else ord('a') + i)
+            fx = int(self.margin_x + i * self.square_size + self.square_size - coord_font_size)
+            fy = int(self.margin_y + self.board_size - 6)
+            coord_color = DARK_COLOR if is_light_bottom else LIGHT_COLOR
+            painter.setPen(QColor(coord_color[0], coord_color[1], coord_color[2]))
             painter.drawText(fx, fy, file_label)
-            rx = int(self.margin_x + 3)
-            ry = int(self.margin_y + i*self.square_size + coord_font_size)
-            # Ranks: 8-1 for white, 1-8 for black
+
+            # Rank labels (1-8) on left side
             rank_label = str(i + 1) if self.flip_board else str(8 - i)
+            rx = int(self.margin_x + 5)
+            ry = int(self.margin_y + i * self.square_size + coord_font_size + 2)
+            coord_color = DARK_COLOR if is_light_side else LIGHT_COLOR
+            painter.setPen(QColor(coord_color[0], coord_color[1], coord_color[2]))
             painter.drawText(rx, ry, rank_label)
 
     def draw_title(self, painter, text, phase, t):
         if phase == 'big':
             size = max(18, int(self.width * TITLE_BIG_RATIO))
-            font = QFont("Helvetica", size)
+            font = QFont("Arial", size, QFont.Bold)
             painter.setFont(font)
-            painter.setPen(QColor(255, 255, 255))  # White title
             fm = painter.fontMetrics()
             w = fm.horizontalAdvance(text)
             h = fm.height()
             x = (self.width - w) / 2
             y = (self.margin_y / 2) + h/2
+
+            # Draw shadow
+            painter.setPen(QColor(0, 0, 0, 120))
+            painter.drawText(int(x + 4), int(y + 4), text)
+
+            # Draw main text with gradient
+            painter.setPen(QColor(255, 255, 255))
             painter.drawText(int(x), int(y), text)
+
         elif phase == 'shrinking':
             t = max(0.0, min(1.0, t))
             big_size = int(self.width * TITLE_BIG_RATIO)
             small_size = int(self.width * TITLE_SMALL_RATIO)
             size = int(big_size*(1-t) + small_size*t)
-            font = QFont("Helvetica", size)
+            font = QFont("Arial", size, QFont.Bold)
             painter.setFont(font)
-            painter.setPen(QColor(255, 255, 255))  # White title
             fm = painter.fontMetrics()
             w = fm.horizontalAdvance(text)
             h = fm.height()
             start_x = (self.width - w) / 2
             start_y = (self.margin_y / 2) + h/2
             end_x = self.margin_x + 8
-            end_y = self.margin_y - h - 15  # Above the board, not overlapping
+            end_y = self.margin_y - h - 20
             x = start_x*(1-t) + end_x*t
             y = start_y*(1-t) + end_y*t
+
+            # Shadow (fades with size)
+            shadow_alpha = int(120 * (1 - t * 0.7))
+            painter.setPen(QColor(0, 0, 0, shadow_alpha))
+            painter.drawText(int(x + 3), int(y + 3), text)
+
+            painter.setPen(QColor(255, 255, 255))
             painter.drawText(int(x), int(y), text)
+
         else:
             size = int(self.width * TITLE_SMALL_RATIO)
-            font = QFont("Helvetica", size)
+            font = QFont("Arial", size, QFont.Bold)
             painter.setFont(font)
-            painter.setPen(QColor(255, 255, 255))  # White title
             fm = painter.fontMetrics()
             h = fm.height()
-            # Position above the board, not overlapping
-            painter.drawText(int(self.margin_x + 8), int(self.margin_y - 15), text)
+
+            # Draw with subtle shadow
+            painter.setPen(QColor(0, 0, 0, 80))
+            painter.drawText(int(self.margin_x + 10), int(self.margin_y - 17), text)
+
+            painter.setPen(QColor(255, 255, 255))
+            painter.drawText(int(self.margin_x + 8), int(self.margin_y - 20), text)
 
     def compose_piece_positions(self, board, moving_piece=None, from_sq=None, to_sq=None, progress=0.0, capture_sq=None, capture_fade=1.0, rook_piece=None, rook_from_sq=None, rook_to_sq=None):
         positions = {}
@@ -246,7 +328,7 @@ class Renderer:
         header_title = game.headers.get('Event') or game.headers.get('Title') or Path(out_mp4_path).stem
         moves = [m for m in game.mainline_moves()]
         ffmpeg_cmd = [
-            'ffmpeg', '-y',
+            FFMPEG_PATH, '-y',
             '-f', 'rawvideo',
             '-pix_fmt', 'rgba',
             '-s', f'{self.width}x{self.height}',

@@ -24,9 +24,9 @@ class CommentGenerator:
         """
         self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
         if not self.api_key:
-            print("⚠️  Warning: No Anthropic API key provided.")
-            print("   Set ANTHROPIC_API_KEY environment variable to enable AI comments")
-            print("   Falling back to template-based comments")
+            print("[!] Warning: No Anthropic API key provided.")
+            print("    Set ANTHROPIC_API_KEY environment variable to enable AI comments")
+            print("    Falling back to template-based comments")
             self.client = None
         else:
             self.client = Anthropic(api_key=self.api_key)
@@ -40,13 +40,13 @@ class CommentGenerator:
 
         # Template-based fallback
         templates = [
-            f"⚔️ {white} vs {black} - {event}",
-            f"🔥 Epic battle: {white} vs {black}",
-            f"♟️ Legendary game from {event}",
+            f" {white} vs {black} - {event}",
+            f"[FIRE] Epic battle: {white} vs {black}",
+            f"[CHESS] Legendary game from {event}",
         ]
 
         if opening:
-            templates.append(f"📖 {opening} - Watch this masterpiece!")
+            templates.append(f"[BOOK] {opening} - Watch this masterpiece!")
 
         if not self.client:
             import random
@@ -91,13 +91,13 @@ Make it exciting and hook the viewer. Use emojis. Be concise."""
 
         # Template fallback
         if analysis.is_brilliant:
-            template = f"🌟 BRILLIANT! {move_san} - Incredible move!"
+            template = f"[STAR] BRILLIANT! {move_san} - Incredible move!"
         elif analysis.is_blunder:
-            template = f"⚠️ BLUNDER! {move_san} loses the advantage"
+            template = f"[WARN] BLUNDER! {move_san} loses the advantage"
         elif abs(analysis.eval_change) > 300:
-            template = f"🔥 CRITICAL! {move_san} changes everything"
+            template = f"[FIRE] CRITICAL! {move_san} changes everything"
         else:
-            template = f"💡 Key move: {move_san}"
+            template = f"[IDEA] Key move: {move_san}"
 
         if not self.client:
             return template
@@ -149,11 +149,11 @@ Make it punchy, use 1-2 emojis, explain WHY it's significant in simple terms. Ti
 
         template = ""
         if result == "1-0":
-            template = f"✅ {white} wins! {brilliants} brilliant moves"
+            template = f"[OK] {white} wins! {brilliants} brilliant moves"
         elif result == "0-1":
-            template = f"✅ {black} wins! {brilliants} brilliant moves"
+            template = f"[OK] {black} wins! {brilliants} brilliant moves"
         else:
-            template = f"🤝 Draw - {brilliants} brilliant moves from both sides"
+            template = f" Draw - {brilliants} brilliant moves from both sides"
 
         if not self.client:
             return template

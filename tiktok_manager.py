@@ -10,6 +10,12 @@ from datetime import datetime
 from typing import List, Dict, Optional
 import subprocess
 
+# Import ffmpeg path finder
+try:
+    from ffmpeg_path import FFMPEG_PATH
+except ImportError:
+    FFMPEG_PATH = FFMPEG_PATH
+
 
 class TikTokVideoPrep:
     """Prepare videos for TikTok upload"""
@@ -92,7 +98,7 @@ class TikTokVideoPrep:
 
         # FFmpeg command to optimize for TikTok
         cmd = [
-            'ffmpeg', '-y',
+            FFMPEG_PATH, '-y',
             '-i', str(input_video),
             # Video settings
             '-c:v', 'libx264',
@@ -117,21 +123,21 @@ class TikTokVideoPrep:
             result = subprocess.run(cmd, capture_output=True, text=True)
 
             if result.returncode != 0:
-                print(f"❌ Optimization failed: {result.stderr}")
+                print(f"[ERROR] Optimization failed: {result.stderr}")
                 return None
 
             file_size = output_path.stat().st_size
             file_size_mb = file_size / (1024 * 1024)
 
-            print(f"✅ Optimized: {output_path.name} ({file_size_mb:.1f} MB)")
+            print(f"[OK] Optimized: {output_path.name} ({file_size_mb:.1f} MB)")
 
             if file_size > self.SPECS['max_file_size']:
-                print(f"⚠️  Warning: File size ({file_size_mb:.1f} MB) exceeds TikTok limit (287 MB)")
+                print(f"[WARN]  Warning: File size ({file_size_mb:.1f} MB) exceeds TikTok limit (287 MB)")
 
             return output_path
 
         except Exception as e:
-            print(f"❌ Error optimizing video: {e}")
+            print(f"[ERROR] Error optimizing video: {e}")
             return None
 
     def add_to_upload_queue(self, video_path: Path, title: str,
@@ -158,7 +164,7 @@ class TikTokVideoPrep:
         self.upload_queue.append(metadata)
         self._save_queue()
 
-        print(f"✅ Added to upload queue: {title}")
+        print(f"[OK] Added to upload queue: {title}")
         print(f"   Hashtags: {' '.join(hashtags[:5])}")
 
     def get_next_to_upload(self) -> Optional[Dict]:
@@ -204,7 +210,7 @@ class TikTokVideoPrep:
         next_video = self.get_next_to_upload()
 
         if not next_video:
-            print("✅ Upload queue is empty!")
+            print("[OK] Upload queue is empty!")
             return
 
         caption = self.generate_caption(
@@ -216,18 +222,18 @@ class TikTokVideoPrep:
         print("\n" + "="*70)
         print("TIKTOK UPLOAD INSTRUCTIONS")
         print("="*70)
-        print(f"\n📹 Video: {next_video['video_path']}")
-        print(f"\n📝 Caption (copy this):")
+        print(f"\n Video: {next_video['video_path']}")
+        print(f"\n[NOTE] Caption (copy this):")
         print("-"*70)
         print(caption)
         print("-"*70)
-        print("\n🔼 Upload Steps:")
+        print("\n Upload Steps:")
         print("  1. Open TikTok app or web (https://www.tiktok.com/upload)")
         print(f"  2. Select video: {next_video['video_path']}")
         print("  3. Paste the caption above")
         print("  4. Add cover image (optional)")
         print("  5. Post!")
-        print("\n💡 After uploading, run:")
+        print("\n[IDEA] After uploading, run:")
         print(f"     manager.mark_as_uploaded('{next_video['video_path']}')")
         print("="*70 + "\n")
 
@@ -258,7 +264,7 @@ class TikTokVideoPrep:
         with open(output_file, 'w') as f:
             json.dump(automation_data, f, indent=2)
 
-        print(f"✅ Exported {len(automation_data)} videos for automation: {output_file}")
+        print(f"[OK] Exported {len(automation_data)} videos for automation: {output_file}")
         return output_file
 
 
@@ -294,7 +300,7 @@ class TikTokAnalytics:
 
         self.data['videos'].append(stats)
         self._save_analytics()
-        print(f"✅ Logged stats for {Path(video_path).name}: {views} views, {likes} likes")
+        print(f"[OK] Logged stats for {Path(video_path).name}: {views} views, {likes} likes")
 
     def show_summary(self):
         """Show analytics summary"""
@@ -329,7 +335,7 @@ if __name__ == "__main__":
         print("\nNext to upload:")
         prep.show_upload_instructions()
     else:
-        print("\n✅ No videos in queue")
+        print("\n[OK] No videos in queue")
 
     print("\nTikTok Video Specifications:")
     for key, value in prep.SPECS.items():

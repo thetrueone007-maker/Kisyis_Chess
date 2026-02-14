@@ -10,6 +10,12 @@ from typing import List, Dict
 import chess
 import chess.pgn
 
+# Import ffmpeg path finder
+try:
+    from ffmpeg_path import FFMPEG_PATH
+except ImportError:
+    FFMPEG_PATH = FFMPEG_PATH
+
 
 class PieceSoundGenerator:
     """Manage sound effects for piece movements using Chess.com sounds"""
@@ -41,11 +47,11 @@ class PieceSoundGenerator:
 
             if chesscom_sound.exists() and not sound_file.exists():
                 shutil.copy(chesscom_sound, sound_file)
-                print(f"✅ Using Chess.com {sound_name} sound: {sound_file}")
+                print(f"[OK] Using Chess.com {sound_name} sound: {sound_file}")
             elif sound_file.exists():
-                print(f"✅ Chess.com {sound_name} sound ready: {sound_file}")
+                print(f"[OK] Chess.com {sound_name} sound ready: {sound_file}")
             else:
-                print(f"⚠️  Chess.com {sound_name} sound not found (optional)")
+                print(f"[WARN]  Chess.com {sound_name} sound not found (optional)")
 
     def add_piece_sounds_to_video(self, video_path: Path, output_path: Path,
                                   game: chess.pgn.Game,
@@ -75,7 +81,7 @@ class PieceSoundGenerator:
         castle_sound = self.sfx_dir / "castle.mp3"
 
         if not move_sound.exists() or not capture_sound.exists():
-            print("⚠️  Sound files not found, skipping sound integration")
+            print("[WARN]  Sound files not found, skipping sound integration")
             import shutil
             shutil.copy(video_path, output_path)
             return False
@@ -151,7 +157,7 @@ class PieceSoundGenerator:
         filter_complex = ";".join(filter_parts)
 
         cmd = [
-            'ffmpeg', '-y',
+            FFMPEG_PATH, '-y',
             *input_files,
             '-filter_complex', filter_complex,
             '-map', '0:v:0',
@@ -168,17 +174,17 @@ class PieceSoundGenerator:
             result = subprocess.run(cmd, capture_output=True, text=True)
 
             if result.returncode != 0:
-                print(f"⚠️  FFmpeg warning: {result.stderr[:200]}")
+                print(f"[WARN]  FFmpeg warning: {result.stderr[:200]}")
                 # Try simpler approach - just copy if mixing fails
                 import shutil
                 shutil.copy(video_path, output_path)
                 return False
 
-            print(f"✅ Added piece sounds successfully")
+            print(f"[OK] Added piece sounds successfully")
             return True
 
         except Exception as e:
-            print(f"⚠️  Error adding piece sounds: {e}")
+            print(f"[WARN]  Error adding piece sounds: {e}")
             import shutil
             shutil.copy(video_path, output_path)
             return False
@@ -189,6 +195,6 @@ if __name__ == "__main__":
     print("=" * 60)
 
     generator = PieceSoundGenerator()
-    print("\n✅ Sound effects ready:")
+    print("\n[OK] Sound effects ready:")
     print(f"   - Move sound: {generator.sfx_dir / 'move.mp3'}")
     print(f"   - Capture sound: {generator.sfx_dir / 'capture.mp3'}")
