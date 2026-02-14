@@ -76,3 +76,4 @@ config.json
 !audio/sfx/.gitkeep
 !logs/.gitkeep
 nul
+stockfish.exe
